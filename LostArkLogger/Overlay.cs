@@ -13,6 +13,7 @@ namespace LostArkLogger
         enum Level // need better state, suboverlay type/etc.
         {
             None,
+            Buffs,
             Damage,
             Counterattacks,
             Stagger,
@@ -104,19 +105,10 @@ namespace LostArkLogger
 
             if (scope == Scope.Encounters)
             {
-                /*for (var i = 0; i < sniffer.Encounters.Count; i++)
+                for (var i = 0; i < sniffer.Encounters.Count; i++)
                 {
-                    e.Graphics.FillRectangle(brushes[i%brushes.Count], 0, (i + 1) * barHeight, Size.Width, barHeight);
-                    e.Graphics.DrawString(sniffer.Encounters.ElementAt(sniffer.Encounters.Count - i - 1).EncounterName, font, black, 5, (i + 1) * barHeight + heightBuffer);
-                }*/
-                var buffs = sniffer.buffTracker.GetBuffMap();
-                for (var i = 0; i < buffs.Count; i++)
-                {
-                    var buff = buffs.ElementAt(i);
                     e.Graphics.FillRectangle(brushes[i % brushes.Count], 0, (i + 1) * barHeight, Size.Width, barHeight);
-                    var entity = sniffer.currentEncounter.Entities.ContainsKey(buff.Key) ? sniffer.currentEncounter.Entities[buff.Key] : (sniffer.currentEncounter.PartyEntities.ContainsKey(buff.Key) ? sniffer.currentEncounter.PartyEntities[buff.Key] : null);
-                    var entityName = entity != null ? entity.Name : "Unknown";
-                    e.Graphics.DrawString(entityName + "[" + buff.Key.ToString() + "] has " + buff.Value.Count + " buffs", font, black, 5, (i + 1) * barHeight + heightBuffer);
+                    e.Graphics.DrawString(sniffer.Encounters.ElementAt(sniffer.Encounters.Count - i - 1).EncounterName, font, black, 5, (i + 1) * barHeight + heightBuffer);
                 }
             }
             else
@@ -130,6 +122,24 @@ namespace LostArkLogger
                 if (level == Level.Damage) rows = encounter.GetDamages((i=>i.Damage), SubEntity);
                 else if (level == Level.Counterattacks) rows = encounter.Counterattacks.ToDictionary(x => x.Key, x => Tuple.Create(x.Value, 0u, 0u));
                 else if (level == Level.Stagger) rows = encounter.Stagger.ToDictionary(x => x.Key, x => Tuple.Create(x.Value, 0u, 0u));
+                if (level == Level.Buffs)
+                {
+                    rows = new Dictionary<string, Tuple<ulong, uint, uint>>();
+                    var buffmap = sniffer.buffTracker.GetBuffMap();
+                    foreach (var item in buffmap)
+                    {
+                        string entityName;
+                        Entity ent;
+                        if (!encounter.Entities.TryGetValue(item.Key, out ent) && !encounter.PartyEntities.TryGetValue(item.Key, out ent))
+                            entityName = "Unknown";
+                        else
+                            entityName = ent.Name;
+                        
+                        entityName += " [" + BitConverter.ToString(BitConverter.GetBytes(item.Key)) + "]";
+                        if (!rows.ContainsKey(entityName))
+                            rows.Add(entityName, new Tuple<ulong, uint, uint>((ulong)item.Value.Count, 0, 0));
+                    }
+                }
                 var elapsed = ((encounter.End == default(DateTime) ? DateTime.Now : encounter.End) - encounter.Start).TotalSeconds;
                 var maxDamage = rows.Count == 0 ? 0 : rows.Max(b => b.Value.Item1);
                 var totalDamage = rows.Values.Sum(b => (Single)b.Item1);
