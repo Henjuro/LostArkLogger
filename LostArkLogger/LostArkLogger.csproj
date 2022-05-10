@@ -72,6 +72,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Data\Buff.cs" />
+    <Compile Include="Data\BuffTracker.cs" />
     <Compile Include="Data\AuctionItem.cs" />
     <Compile Include="Data\Encounter.cs" />
     <Compile Include="Data\Entity.cs" />

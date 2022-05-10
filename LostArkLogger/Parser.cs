@@ -22,6 +22,7 @@ namespace LostArkLogger
         public event Action onNewZone;
         public event Action<int> onPacketTotalCount;
         public bool enableLogging = true;
+        public BuffTracker buffTracker;
         public bool use_npcap = false;
         private object lockPacketProcessing = new object(); // needed to synchronize UI swapping devices
         public Machina.Infrastructure.NetworkMonitorType? monitorType = null;
@@ -111,6 +112,8 @@ namespace LostArkLogger
                     tcp.Start();
                 }
             }
+            buffTracker = new BuffTracker();
+            buffTracker.SetParser(this);
         }
         void ProcessDamageEvent(Entity sourceEntity, UInt32 skillId, UInt32 subSkillId, PKTSkillDamageNotify.SkillDamageNotifyEvent dmgEvent)
         {
@@ -199,6 +202,7 @@ namespace LostArkLogger
                         payload = Oodle.Decompress(payload).Skip(16).ToArray();
                         break;
                 }
+                //Console.WriteLine(opcode + " : " + BitConverter.ToString(payload));
 
                 // write packets for analyzing, bypass common, useless packets
                 //if (opcode != OpCodes.PKTMoveError && opcode != OpCodes.PKTMoveNotify && opcode != OpCodes.PKTMoveNotifyList && opcode != OpCodes.PKTTransitStateNotify && opcode != OpCodes.PKTPing && opcode != OpCodes.PKTPong)
@@ -222,19 +226,29 @@ namespace LostArkLogger
                 else if (opcode == OpCodes.PKTNewNpc)
                 {
                     currentEncounter.Entities.AddOrUpdate(new Entity { EntityId = BitConverter.ToUInt64(payload, 7), Name = Npc.GetNpcName(BitConverter.ToUInt32(payload, 15)), Type = Entity.EntityType.Npc });
+                    File.AppendAllText(@".\lostark_package_npc_summon.log", opcode + " : " + BitConverter.ToString(payload) + "\n");
+                    File.AppendAllText(@".\lostark_package_npc_summon.log", "NPC Name " + Npc.GetNpcName(BitConverter.ToUInt32(payload, 15)) + " NPC ID:" + BitConverter.ToString(payload, 7, 8));
                 }
                 else if (opcode == OpCodes.PKTNewPC)
                 {
                     var pc = new PKTNewPC(payload);
-                    currentEncounter.Entities.AddOrUpdate(new Entity { EntityId = pc.PlayerId, Name = pc.Name, ClassName = Npc.GetPcClass(pc.ClassId), Type = Entity.EntityType.Player });
+                    File.AppendAllText(@"E:\lostark_package.log", opcode + " : " + BitConverter.ToString(payload) + "\n");
+                    Entity newEntity = new Entity { EntityId = pc.PlayerId, PartyId = pc.UnkId, Name = pc.Name, ClassName = Npc.GetPcClass(pc.ClassId), Type = Entity.EntityType.Player };
+                    currentEncounter.Entities.AddOrUpdate(newEntity);
+                    currentEncounter.PartyEntities[pc.UnkId] = newEntity;
+                    //Console.WriteLine(pc.Name + " with ID" + pc.PlayerId.ToString() + " as " + BitConverter.ToString(BitConverter.GetBytes(pc.PlayerId)));
+                    File.AppendAllText(@".\lostark_package.log", pc.Name + " with ID " + BitConverter.ToString(BitConverter.GetBytes(pc.PlayerId)) + " and PartyID: " + BitConverter.ToString(BitConverter.GetBytes(pc.UnkId)) + "\n");
                 }
                 else if (opcode == OpCodes.PKTInitEnv)
                 {
+                    File.AppendAllText(@".\lostark_package.log", opcode + " : " + BitConverter.ToString(payload) + "\n");
                     var pc = new PKTInitEnv(payload);
                     if (currentEncounter.Infos.Count == 0) Encounters.Remove(currentEncounter);
                     currentEncounter = new Encounter();
                     Encounters.Add(currentEncounter);
                     currentEncounter.Entities.AddOrUpdate(new Entity { EntityId = pc.PlayerId, Name = "You", Type = Entity.EntityType.Player });
+                    //Console.WriteLine("You with ID" + pc.PlayerId.ToString() + " as " + BitConverter.ToString(BitConverter.GetBytes(pc.PlayerId)));
+                    File.AppendAllText(@".\lostark_package.log", "You with ID " + BitConverter.ToString(BitConverter.GetBytes(pc.PlayerId)) + "\n");
                     onNewZone?.Invoke();
                 }
                 else if (opcode == OpCodes.PKTRaidResult // raid over
@@ -288,6 +302,90 @@ namespace LostArkLogger
                 }
                 else if (opcode == OpCodes.PKTNewNpcSummon)
                     currentEncounter.Entities.AddOrUpdate(new Entity { EntityId = BitConverter.ToUInt64(payload, 44), OwnerId = BitConverter.ToUInt64(payload, 0), Type = Entity.EntityType.Summon });
+                else if (opcode == OpCodes.PKTStatusEffectAddNotify)
+                {
+                    int expectedLength = 48 + 3 + 8; // start, three marker bytes, the id at the end
+                    int nextMarker = 49;
+                    if (payload[48] == 0x01)
+                    {
+                        expectedLength += 16;
+                        nextMarker += 16;
+                    }
+                    if (payload[nextMarker] == 0x01 && payload[nextMarker+1] == 0x00)
+                    {
+                        expectedLength += 7;
+                    }
+                    if (payload.Length != expectedLength)
+                        File.AppendAllText(@".\lostark_package_out_of_size.log", opcode + " : Size (should be "+ expectedLength.ToString() + ") " + payload.Length.ToString() + " : " + BitConverter.ToString(payload) + "\n");
+                    File.AppendAllText(@".\lostark_package.log", opcode + " : " + BitConverter.ToString(payload) + "\n");
+                    var statusEffect = new PKTStatusEffectAddNotify(payload);
+                    buffTracker.Add(statusEffect);
+                }
+                else if (opcode == OpCodes.PKTStatusEffectRemoveNotify)
+                {
+                    // find first none zero
+                    int findex = -1;
+                    for (int i = 0; i < payload.Length; i++)
+                    {
+                        if (payload[i] != 0x00)
+                        {
+                            findex = i;
+                            break;
+                        }
+                    }
+                    UInt16 amount = BitConverter.ToUInt16(payload, findex + 9);
+                    int expectedLength = (findex + 11 + amount * 4);
+                    if (payload.Length != expectedLength)
+                        File.AppendAllText(@".\lostark_package_out_of_size.log", opcode + " : Size (should be " + expectedLength.ToString() +") " + payload.Length.ToString() + " : " + BitConverter.ToString(payload) + "\n");
+                    File.AppendAllText(@".\lostark_package.log", opcode + " : " + BitConverter.ToString(payload) + "\n");
+                    var statusEffectRemove = new PKTStatusEffectRemoveNotify(payload);
+                    buffTracker.Remove(statusEffectRemove);
+                }
+                else if (opcode == OpCodes.PKTPartyStatusEffectAddNotify)
+                {
+                    UInt16 repeat = BitConverter.ToUInt16(payload, 8);
+                    int expectedLength = 7 + repeat * 42 + 12;
+                    int nextMarker = 50;
+                    if (payload[49] == 0x01)
+                    {
+                        expectedLength += 16;
+                        nextMarker += 16;
+                    }
+                    if (payload[nextMarker] == 0x01)
+                    {
+                        expectedLength += 7;
+                    }
+                    if (payload.Length != expectedLength)
+                        File.AppendAllText(@".\lostark_package_out_of_size.log", opcode + " : Size (should be " + expectedLength.ToString() + ") " + payload.Length.ToString() + " : " + BitConverter.ToString(payload) + "\n");
+                    File.AppendAllText(@".\lostark_package.log", opcode + " : " + BitConverter.ToString(payload) + "\n");
+                    var partyStatusEffect = new PKTPartyStatusEffectAddNotify(payload);
+                    buffTracker.Add(partyStatusEffect);
+                }
+                else if (opcode == OpCodes.PKTPartyStatusEffectRemoveNotify)
+                {
+                    int startIndex = -1;
+                    for (int i = 0; i < payload.Length; i++)
+                    {
+                        if (payload[i] != 0x00)
+                        {
+                            startIndex = i;
+                            break;
+                        }
+                    }
+                    // all the zeros at the start, marker byte, amount bytes, amount * size of buffid, playerid or partyid
+                    int expectedLength = startIndex + 1 + 2 + BitConverter.ToInt16(payload, startIndex + 1) * 4 + 8;
+                    if (payload.Length != expectedLength)
+                        File.AppendAllText(@".\lostark_package_out_of_size.log", opcode + " : Size (should be " + expectedLength.ToString() + ") " + payload.Length.ToString() + " : " + BitConverter.ToString(payload) + "\n");
+                    File.AppendAllText(@".\lostark_package.log", opcode + " : " + BitConverter.ToString(payload) + "\n");
+                    var partyStatusEffectRemove = new PKTPartyStatusEffectRemoveNotify(payload);
+                    buffTracker.Remove(partyStatusEffectRemove);
+                }
+                else if (opcode == OpCodes.PKTDeathNotify)
+                {
+                    File.AppendAllText(@".\lostark_package.log", opcode + " : " + BitConverter.ToString(payload) + "\n");
+                    Console.WriteLine(opcode + " : " + BitConverter.ToString(payload));
+                    buffTracker.EntityDied(new PKTDeathNotify(payload));
+                }
                 if (packets.Length < packetSize) throw new Exception("bad packet maybe");
                 packets = packets.Skip(packetSize).ToArray();
             }

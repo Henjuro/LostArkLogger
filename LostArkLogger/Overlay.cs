@@ -39,6 +39,7 @@ namespace LostArkLogger
         {
             sniffer = s;
             sniffer.onCombatEvent += AddDamageEvent;
+            sniffer.buffTracker.OnChange += BuffsChangedEvent;
             encounter = sniffer.currentEncounter;
         }
         Encounter encounter;
@@ -47,6 +48,9 @@ namespace LostArkLogger
         void AddDamageEvent(LogInfo log)
         {
             if (sniffer.currentEncounter.Infos.Count > 0) encounter = sniffer.currentEncounter;
+        }
+        void BuffsChangedEvent()
+        {
             Invalidate();
         }
         internal Parser sniffer;
@@ -100,10 +104,19 @@ namespace LostArkLogger
 
             if (scope == Scope.Encounters)
             {
-                for (var i = 0; i < sniffer.Encounters.Count; i++)
+                /*for (var i = 0; i < sniffer.Encounters.Count; i++)
                 {
-                    e.Graphics.FillRectangle(brushes[i % brushes.Count], 0, (i + 1) * barHeight, Size.Width, barHeight);
+                    e.Graphics.FillRectangle(brushes[i%brushes.Count], 0, (i + 1) * barHeight, Size.Width, barHeight);
                     e.Graphics.DrawString(sniffer.Encounters.ElementAt(sniffer.Encounters.Count - i - 1).EncounterName, font, black, 5, (i + 1) * barHeight + heightBuffer);
+                }*/
+                var buffs = sniffer.buffTracker.GetBuffMap();
+                for (var i = 0; i < buffs.Count; i++)
+                {
+                    var buff = buffs.ElementAt(i);
+                    e.Graphics.FillRectangle(brushes[i % brushes.Count], 0, (i + 1) * barHeight, Size.Width, barHeight);
+                    var entity = sniffer.currentEncounter.Entities.ContainsKey(buff.Key) ? sniffer.currentEncounter.Entities[buff.Key] : (sniffer.currentEncounter.PartyEntities.ContainsKey(buff.Key) ? sniffer.currentEncounter.PartyEntities[buff.Key] : null);
+                    var entityName = entity != null ? entity.Name : "Unknown";
+                    e.Graphics.DrawString(entityName + "[" + buff.Key.ToString() + "] has " + buff.Value.Count + " buffs", font, black, 5, (i + 1) * barHeight + heightBuffer);
                 }
             }
             else
