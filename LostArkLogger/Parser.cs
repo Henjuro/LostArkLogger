@@ -42,7 +42,9 @@ namespace LostArkLogger
             onCombatEvent += AppendLog;
             onCombatEvent += Parser_onDamageEvent;
             onNewZone += Parser_onNewZone;
-
+            buffTracker = new BuffTracker();
+            buffTracker.SetParser(this);
+            onNewZone += buffTracker.OnNewZone;
             InstallListener();
         }
         // UI needs to be able to ask us to reload our listener based on the current user settings
@@ -112,8 +114,6 @@ namespace LostArkLogger
                     tcp.Start();
                 }
             }
-            buffTracker = new BuffTracker();
-            buffTracker.SetParser(this);
         }
         void ProcessDamageEvent(Entity sourceEntity, UInt32 skillId, UInt32 subSkillId, PKTSkillDamageNotify.SkillDamageNotifyEvent dmgEvent)
         {
