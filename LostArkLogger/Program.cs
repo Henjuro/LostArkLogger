@@ -25,6 +25,7 @@ namespace LostArkLogger
             if (!IsConsole)
             {
                 Application.EnableVisualStyles();
+                Application.SetHighDpiMode(HighDpiMode.SystemAware);
                 Application.SetCompatibleTextRenderingDefault(false);
                 Application.Run(new MainWindow());
             }
@@ -101,7 +102,7 @@ namespace LostArkLogger
                 {
                     UseShellExecute = true,
                     WorkingDirectory = Environment.CurrentDirectory,
-                    FileName = Assembly.GetEntryAssembly().CodeBase.Replace(".dll", ".exe"),
+                    FileName = Assembly.GetEntryAssembly().Location,
                     Verb = "runas"
                 };
                 try { Process.Start(startInfo); }
