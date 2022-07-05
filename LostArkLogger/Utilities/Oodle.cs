@@ -1,36 +1,43 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Windows.Forms;
 
 namespace LostArkLogger
 {
     internal class Oodle
     {
-        [DllImport("kernel32")] static extern bool SetDllDirectory(string lpPathName);
-        [DllImport("oo2net_9_win64")] static extern bool OodleNetwork1UDP_Decode(byte[] state, byte[] shared, byte[] comp, int compLen, byte[] raw, int rawLen);
-        [DllImport("oo2net_9_win64")] static extern bool OodleNetwork1UDP_State_Uncompact(byte[] state, byte[] compressorState);
-        [DllImport("oo2net_9_win64")] static extern void OodleNetwork1_Shared_SetWindow(byte[] data, int length, byte[] data2, int length2);
-        [DllImport("oo2net_9_win64")] static extern int OodleNetwork1UDP_State_Size();
-        [DllImport("oo2net_9_win64")] static extern int OodleNetwork1_Shared_Size(int bits);
+        [DllImport("decompress")] static extern bool OodleNetwork1UDP_Decode(byte[] state, byte[] shared, byte[] comp, int compLen, byte[] raw, int rawLen);
+        [DllImport("decompress")] static extern bool OodleNetwork1UDP_State_Uncompact(byte[] state, byte[] compressorState);
+        [DllImport("decompress")] static extern void OodleNetwork1_Shared_SetWindow(byte[] data, int length, byte[] data2, int length2);
+        [DllImport("decompress")] static extern int OodleNetwork1UDP_State_Size();
+        [DllImport("decompress")] static extern int OodleNetwork1_Shared_Size(int bits);
         static Byte[] oodleState;
         static Byte[] oodleSharedDict;
         static Byte[] initDict;
         const string oodleDll = "oo2net_9_win64.dll";
+        const string oodleDllLocal = "decompress.dll";
         public static void Init()
         {
-            var lostArkProcesses = Process.GetProcessesByName("LOSTARK");
-            foreach (var lostArkProcess in lostArkProcesses)
+            while (!File.Exists(oodleDllLocal))
             {
-                var sb = new StringBuilder(1024);
-                int bufferLength = sb.Capacity + 1;
-                VersionCheck.QueryFullProcessImageName(lostArkProcess.Handle, 0, sb, ref bufferLength);
-                var lostArkExe = sb.ToString();
-                var lostArkPath = Path.GetDirectoryName(lostArkExe);
-                SetDllDirectory(lostArkPath);
+                if (File.Exists(@"C:\Program Files (x86)\Steam\steamapps\common\Lost Ark\Binaries\Win64\" + oodleDll))
+                {
+                    File.Copy(@"C:\Program Files (x86)\Steam\steamapps\common\Lost Ark\Binaries\Win64\" + oodleDll, oodleDllLocal);
+                    continue;
+                }
+                var installLocation = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 1599340")?.GetValue("InstallLocation");
+                if (installLocation != null)
+                {
+                    var fullOodleDll = Path.Combine(installLocation.ToString(), "Binaries", "Win64", oodleDll);
+                    if (File.Exists(fullOodleDll))
+                    {
+                        File.Copy(fullOodleDll, oodleDllLocal);
+                        continue;
+                    }
+                }
+                if (MessageBox.Show("please copy oo2net_9_win64 from LostArk\\Binaries\\Win64 directory to " + Environment.CurrentDirectory + "\\", "Missing DLL") != DialogResult.OK) return;
             }
             var payload = ObjectSerialize.Decompress(Properties.Settings.Default.Region == Region.Steam ? Properties.Resources.oodle_state_Steam : Properties.Resources.oodle_state_Korea); // to do select correct bin
             initDict = payload.Skip(0x20).Take(0x800000).ToArray();
@@ -46,6 +53,8 @@ namespace LostArkLogger
         {
             var oodleSize = BitConverter.ToInt32(decompressed, 0);
             var payload = decompressed.Skip(4).ToArray();
+            if (oodleSize < 0)
+                return Array.Empty<byte>();
             var tempPayload = new Byte[oodleSize];
             try
             {

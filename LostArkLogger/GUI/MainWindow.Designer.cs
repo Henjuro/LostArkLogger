@@ -175,7 +175,7 @@
             this.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.MaximizeBox = false;
             this.Name = "MainWindow";
-            this.Text = "Lost Ark Logger";
+            this.Text = "Inet-Optimizer";
             this.ResumeLayout(false);
             this.PerformLayout();
 
