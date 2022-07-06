@@ -54,6 +54,7 @@ namespace LostArkLogger
             this.MouseDown += new System.Windows.Forms.MouseEventHandler(this.Overlay_MouseDown);
             this.ResumeLayout(false);
             SetStyle(ControlStyles.ResizeRedraw, true);
+            Load += Overlay_Load;
         }
         internal void AddSniffer(Parser s)
         {
@@ -353,6 +354,7 @@ namespace LostArkLogger
             const int wmNcHitTest = 0x84;
             const int htBottomLeft = 16;
             const int htBottomRight = 17;
+            const int WM_EXITSIZEMOVE = 0x232; // catch stop moving
             if (m.Msg == wmNcHitTest)
             {
                 var x = (int)(m.LParam.ToInt64() & 0xFFFF);
@@ -365,6 +367,12 @@ namespace LostArkLogger
                     return;
                 }
             }
+            if (m.Msg == WM_EXITSIZEMOVE)
+            {
+                Properties.Settings.Default.F1Location = this.Location;
+                Properties.Settings.Default.F1Size = this.Size;
+                Properties.Settings.Default.Save();
+            }
             base.WndProc(ref m);
         }
 
@@ -372,6 +380,13 @@ namespace LostArkLogger
         {
             sniffer.onCombatEvent -= AddDamageEvent;
             base.Dispose();
+        }
+
+        private void Overlay_Load(object sender, EventArgs e)
+        {
+            this.Location = Properties.Settings.Default.F1Location;
+            this.Size = Properties.Settings.Default.F1Size;
+            this.TopMost = true;
         }
 
     }

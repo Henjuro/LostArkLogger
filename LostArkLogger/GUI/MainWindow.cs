@@ -45,6 +45,7 @@ namespace LostArkLogger
             overlay = new Overlay();
             overlay.AddSniffer(sniffer);
             overlay.Show();
+            Load += MainWindow_Load;
         }
 
         private void weblink_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
@@ -117,6 +118,28 @@ namespace LostArkLogger
             Properties.Settings.Default.AutoUpload = autoUpload.Checked;
             Properties.Settings.Default.Save();
 
+        }
+        protected override void WndProc(ref Message m)
+        {
+            const int WM_EXITSIZEMOVE = 0x232;
+
+            switch (m.Msg)
+            {
+                case WM_EXITSIZEMOVE:
+                    base.WndProc(ref m);
+                    Properties.Settings.Default.F2Location = this.Location;
+                    Properties.Settings.Default.F2Size = this.Size;
+                    Properties.Settings.Default.Save();
+                    break;
+                default:
+                    base.WndProc(ref m);
+                    break;
+            }
+        }
+        private void MainWindow_Load(object sender, EventArgs e)
+        {
+            this.Location = Properties.Settings.Default.F2Location;
+            //this.Size = Properties.Settings.Default.F2Size;
         }
     }
 }

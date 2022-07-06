@@ -82,5 +82,53 @@ namespace LostArkLogger.Properties {
                 this["DisplayNames"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("300, 300")]
+        public global::System.Drawing.Point F2Location {
+            get {
+                return ((global::System.Drawing.Point)(this["F2Location"]));
+            }
+            set {
+                this["F2Location"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("314, 184")]
+        public global::System.Drawing.Size F2Size {
+            get {
+                return ((global::System.Drawing.Size)(this["F2Size"]));
+            }
+            set {
+                this["F2Size"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0, 0")]
+        public global::System.Drawing.Point F1Location {
+            get {
+                return ((global::System.Drawing.Point)(this["F1Location"]));
+            }
+            set {
+                this["F1Location"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("314, 184")]
+        public global::System.Drawing.Size F1Size {
+            get {
+                return ((global::System.Drawing.Size)(this["F1Size"]));
+            }
+            set {
+                this["F1Size"] = value;
+            }
+        }
     }
 }
