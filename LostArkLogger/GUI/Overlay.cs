@@ -148,6 +148,8 @@ namespace LostArkLogger
                 title = level.ToString();
                 if (scope == Scope.Player) title += " (" + SubEntity.VisibleName + ")";
             }
+            if (!encounter.BigNPCHealthMap.IsEmpty)
+                title += " " + encounter.BigNPCHealthMap.Select(x => $"{x.Key}: {x.Value}%").Aggregate((x,y) => $"{x} - {y}");
             var titleBar = e.Graphics.MeasureString(title, font);
             var heightBuffer = (barHeight - titleBar.Height) / 2;
             e.Graphics.DrawString(title, font, black, 5, heightBuffer);

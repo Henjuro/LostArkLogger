@@ -15,6 +15,7 @@ namespace LostArkLogger
         public ConcurrentBag<LogInfo> Infos = new ConcurrentBag<LogInfo>();
         public ConcurrentDictionary<UInt64, Entity> PartyEntities = new ConcurrentDictionary<UInt64, Entity>();
         public bool AfterWipe = false;
+        public ConcurrentDictionary<string, int> BigNPCHealthMap = new ConcurrentDictionary<string, int>();
         public String EncounterName
         {
             get
