@@ -64,7 +64,8 @@ namespace LostArkLogger
 
         private void checkUpdate_Click(object sender, EventArgs e)
         {
-            using (var wc = new WebClient())
+            sniffer.Clear();
+            /*using (var wc = new WebClient())
             {
                 wc.Headers["User-Agent"] = "LostArkLogger";
                 var json = wc.DownloadString(@"https://api.github.com/repos/shalzuth/LostArkLogger/releases/latest");
@@ -82,7 +83,7 @@ namespace LostArkLogger
                     System.Diagnostics.Process.Start(curFileName);
                     Environment.Exit(0);
                 }
-            }
+            }*/
         }
         private void sniffModeCheckbox_CheckedChanged(object sender, EventArgs e)
         {

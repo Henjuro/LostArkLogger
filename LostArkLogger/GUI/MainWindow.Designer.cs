@@ -106,7 +106,7 @@
             this.checkUpdate.Name = "checkUpdate";
             this.checkUpdate.Size = new System.Drawing.Size(114, 27);
             this.checkUpdate.TabIndex = 11;
-            this.checkUpdate.Text = "Check Update";
+            this.checkUpdate.Text = "Clear";
             this.checkUpdate.UseVisualStyleBackColor = true;
             this.checkUpdate.Click += new System.EventHandler(this.checkUpdate_Click);
             // 

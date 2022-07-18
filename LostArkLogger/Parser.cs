@@ -758,6 +758,21 @@ namespace LostArkLogger
             onNewZone?.Invoke();
         }
 
+        public void Clear()
+        {
+            lock (lockPacketProcessing)
+            {
+                var oldEnc = currentEncounter;
+                var newEnc = new Encounter();
+                newEnc.Entities = oldEnc.Entities;
+                newEnc.PartyEntities = oldEnc.PartyEntities;
+                Encounters.Add(newEnc);
+                currentEncounter = newEnc;
+                oldEnc.End = DateTime.UtcNow;
+                onNewZone?.Invoke();
+            }
+        }
+
         public void Dispose()
         {
 
