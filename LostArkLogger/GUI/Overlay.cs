@@ -101,6 +101,7 @@ namespace LostArkLogger
             if (n < 1000000000) return String.Format("{0:#,,.}M", n - 500000);
             return String.Format("{0:#,,,.##}B", n - 5000000);
         }
+
         public Rectangle GetSpriteLocation(int i)
         {
             i--;
@@ -152,8 +153,11 @@ namespace LostArkLogger
                 title = level.ToString();
                 if (scope == Scope.Player) title += " (" + SubEntity.VisibleName + ")";
             }
-            if (!encounter.BigNPCHealthMap.IsEmpty)
-                title += " " + encounter.BigNPCHealthMap.Select(x => $"{x.Key}: {x.Value}%").Aggregate((x,y) => $"{x} - {y}");
+            var bighHealthNpcs = encounter.BigNPCHealthMap.Where(x => (DateTime.UtcNow - x.Value.Item1).TotalSeconds < 30).ToArray();
+            if (bighHealthNpcs.Length > 0)
+            {
+                title += " " + bighHealthNpcs.Select(x => $"{x.Key}: {x.Value.Item2}% of {FormatNumber((ulong)x.Value.Item3)}").Aggregate((x, y) => $"{x} - {y}");
+            }
             var titleBar = e.Graphics.MeasureString(title, font);
             var heightBuffer = (barHeight - titleBar.Height) / 2;
             e.Graphics.DrawString(title, font, black, 5, heightBuffer);
@@ -369,5 +373,6 @@ namespace LostArkLogger
             sniffer.onCombatEvent -= AddDamageEvent;
             base.Dispose();
         }
+
     }
 }

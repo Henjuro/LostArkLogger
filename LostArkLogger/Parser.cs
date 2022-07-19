@@ -121,10 +121,16 @@ namespace LostArkLogger
 
         void ProcessDamageEvent(Entity sourceEntity, UInt32 skillId, UInt32 skillEffectId, SkillDamageEvent dmgEvent)
         {
-            if (dmgEvent.MaxHp > 30000000) {
+            if (dmgEvent.MaxHp > 3000000) {
                 int perc = (int)(dmgEvent.CurHp / ((double)dmgEvent.MaxHp) * 100);
                 string name = currentEncounter.Entities.GetOrAdd(dmgEvent.TargetId).VisibleName;
-                currentEncounter.BigNPCHealthMap.AddOrUpdate(name, perc, (k, v) => perc);
+                if (perc <= 0)
+                    currentEncounter.BigNPCHealthMap.Remove(name, out _);
+                else
+                {
+                    var data = new Tuple<DateTime, int, long, long>(DateTime.UtcNow, perc, dmgEvent.MaxHp, dmgEvent.CurHp);
+                    currentEncounter.BigNPCHealthMap.AddOrUpdate(name, data, (k, v) => data);
+                }
             }
             var hitFlag = (HitFlag)(dmgEvent.Modifier & 0xf);
             if (hitFlag == HitFlag.HIT_FLAG_DAMAGE_SHARE && skillId == 0 && skillEffectId == 0)
