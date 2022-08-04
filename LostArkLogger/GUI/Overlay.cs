@@ -291,7 +291,9 @@ namespace LostArkLogger
                                 break;
                             default:
                                 entityName = orderedRows.ElementAt(index).Key;
-                                SubEntity = encounter.Infos.First(i => i.SourceEntity.VisibleName == entityName).SourceEntity;
+                                var p = encounter.Infos.FirstOrDefault(i => i.SourceEntity.VisibleName == entityName);
+                                if (p != default(LogInfo))
+                                    SubEntity = p.SourceEntity;
                                 SwitchOverlay(Scope.Player);
                                 break;
                         }
