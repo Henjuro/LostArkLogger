@@ -446,9 +446,9 @@ namespace LostArkLogger
                     }
                     currentEncounter.Entities.AddOrUpdate(temp);
                     currentEncounter.PartyEntities[temp.PartyId] = temp;
-
-                    var currentHp = pc.statPair.Value[pc.statPair.StatType.IndexOf((byte)StatType.STAT_TYPE_HP)].ToString();
-                    var maxHp = pc.statPair.Value[pc.statPair.StatType.IndexOf((byte)StatType.STAT_TYPE_MAX_HP)].ToString();
+                    
+                    var currentHp = pc.statPair.StatType.IndexOf((byte)StatType.STAT_TYPE_HP) >= 0 ? pc.statPair.Value[pc.statPair.StatType.IndexOf((byte)StatType.STAT_TYPE_HP)].ToString() : "0";
+                    var maxHp = pc.statPair.StatType.IndexOf((byte)StatType.STAT_TYPE_MAX_HP) >= 0 ? pc.statPair.Value[pc.statPair.StatType.IndexOf((byte)StatType.STAT_TYPE_MAX_HP)].ToString() : "0";
 
                     Logger.AppendLog(3, pc.PlayerId.ToString("X"), temp.Name, pc.ClassId.ToString(), Npc.GetPcClass(pc.ClassId), pc.Level.ToString(), temp.GearScore, currentHp, maxHp);
                     statusEffectTracker.NewPc(pcPacket);
