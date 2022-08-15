@@ -13,6 +13,31 @@ namespace LostArkLogger
         {
             if (id == 0 && subId == 0) return "Bleed"; // ?? someone fix this
             var skillName = "";
+            if(id == 0)
+            {
+                switch (subId)
+                {
+                    case 600020110:
+                        return "Electrode Damage";
+                    case 610020110:
+                        return "Electrode Damage x2";
+                    case 620020110:
+                        return "Electrode Damage x3";
+                    case 600050109:
+                        return "Meteorite Damage";
+                    case 610050109:
+                        return "Meteorite Damage x2";
+                    case 620050109:
+                        return "Meteorite Damage x3";
+                    case 600030111:
+                        return "Lightning Damage";
+                    case 610030111:
+                        return "Lightning Damage x2";
+                    case 620030111:
+                        return "Lightning Damage x3";
+
+                }
+            }
             if (Items.ContainsKey((int)id))
             {
                 var skill = Items[(int)id];
