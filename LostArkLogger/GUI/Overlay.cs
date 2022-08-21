@@ -65,10 +65,14 @@ namespace LostArkLogger
         Encounter encounter;
         Entity SubEntity;
         Font font = new Font("Helvetica", 10);
+        bool notCurrentEncounter = false;
         void AddDamageEvent(LogInfo log)
         {
-            if (sniffer.currentEncounter.Infos.Count > 0) encounter = sniffer.currentEncounter;
-            Invalidate();
+            if (sniffer.currentEncounter.Infos.Count > 0 && !notCurrentEncounter)
+            {
+                encounter = sniffer.currentEncounter;
+                Invalidate();
+            }
         }
 
         void StatusEffectsChangedEvent()
@@ -305,6 +309,7 @@ namespace LostArkLogger
                     if (scope == Scope.Encounters)
                     {
                         encounter = sniffer.Encounters.ElementAt(sniffer.Encounters.Count - index - 1);
+                        notCurrentEncounter = (index > 0);
                         SwitchOverlay(Scope.TopLevel);
                     }
                 }
