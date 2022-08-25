@@ -26,7 +26,7 @@ namespace LostArkLogger
             versionLabel.Text = "v" + System.Reflection.Assembly.GetEntryAssembly().GetName().Version.ToString();
             Oodle.Init();
             if (!Directory.Exists("logs")) Directory.CreateDirectory("logs");
-            sniffer = new Parser();
+            sniffer = new RemoteParser();
             sniffer.onPacketTotalCount += (int totalPacketCount) =>
             {
                 _packetCount = totalPacketCount;

@@ -23,7 +23,7 @@ namespace LostArkLogger
         public event Action beforeNewZone;
         public event Action<int> onPacketTotalCount;
         public bool use_npcap = false;
-        private object lockPacketProcessing = new object(); // needed to synchronize UI swapping devices
+        protected object lockPacketProcessing = new object(); // needed to synchronize UI swapping devices
         public Machina.Infrastructure.NetworkMonitorType? monitorType = null;
         public List<Encounter> Encounters = new List<Encounter>();
         public Encounter currentEncounter = new Encounter();
@@ -47,7 +47,7 @@ namespace LostArkLogger
         }
 
         // UI needs to be able to ask us to reload our listener based on the current user settings
-        public void InstallListener()
+        virtual public void InstallListener()
         {
             lock (lockPacketProcessing)
             {
@@ -176,7 +176,7 @@ namespace LostArkLogger
                 ProcessDamageEvent(sourceEntity, damage.SkillId, damage.SkillEffectId, dmgEvent.skillDamageEvent);
         }
 
-        OpCodes GetOpCode(Byte[] packets)
+        protected OpCodes GetOpCode(Byte[] packets)
         {
             var opcodeVal = BitConverter.ToUInt16(packets, 2);
             var opCodeString = "";
@@ -189,7 +189,7 @@ namespace LostArkLogger
         //Byte[] XorTableRu = ObjectSerialize.Decompress(Properties.Resources.xor_ru);
         Byte[] XorTableKorea = ObjectSerialize.Decompress(Properties.Resources.xor_Korea);
         Byte[] XorTable { get { return Properties.Settings.Default.Region == Region.Steam ? XorTableSteam : XorTableKorea; } }
-        void ProcessPacket(List<Byte> data)
+        protected void ProcessPacket(List<Byte> data)
         {
             var packets = data.ToArray();
             var packetWithTimestamp = BitConverter.GetBytes(DateTime.UtcNow.ToBinary()).ToArray().Concat(data);
@@ -625,8 +625,8 @@ namespace LostArkLogger
             }
         }
 
-        UInt32 currentIpAddr = 0xdeadbeef;
-        int loggedPacketCount = 0;
+        protected UInt32 currentIpAddr = 0xdeadbeef;
+        protected int loggedPacketCount = 0;
 
 
         void Device_OnPacketArrival_machina(Machina.Infrastructure.TCPConnection connection, byte[] bytes)
@@ -747,6 +747,10 @@ namespace LostArkLogger
             }
             tcp = null;
             pcap = null;
+        }
+        protected void OnNewZone()
+        {
+            onNewZone?.Invoke();
         }
 
         public void Dispose()
