@@ -72,7 +72,7 @@ namespace LostArkLogger
             var baseSearch = Infos.Where(i => i.SourceEntity.Type == Entity.EntityType.Player);
             IEnumerable<IGrouping<String, LogInfo>> grouped;
             if (entity != default(Entity))
-                grouped = baseSearch.Where(i => i.SourceEntity == entity).GroupBy(i => "(" + i.SkillId + ") " + i.SkillName);
+                grouped = baseSearch.Where(i => i.SourceEntity.EntityId == entity.EntityId || i.SourceEntity.VisibleName == entity.VisibleName).GroupBy(i => $"({i.SkillId},{i.SkillEffectId}) {i.SkillName}");
             else
                 grouped = baseSearch.GroupBy(i => i.SourceEntity.VisibleName);
             return grouped.Select(i => new KeyValuePair<String, Tuple<UInt64, UInt32, UInt32, UInt64>>(i.Key, Tuple.Create((UInt64)i.Sum(sum), (UInt32)i.Count(), (UInt32)i.Count(log => log.Crit), (UInt64)i.Sum(j => (Single)j.TimeAlive)))).ToDictionary(x => x.Key, x => x.Value);
@@ -84,7 +84,7 @@ namespace LostArkLogger
             var baseSearch = RaidInfos.Where(i => i.SourceEntity.Type == Entity.EntityType.Player);
             IEnumerable<IGrouping<String, LogInfo>> grouped;
             if (entity != default(Entity))
-                grouped = baseSearch.Where(i => i.SourceEntity == entity).GroupBy(i => "(" + i.SkillId + ") " + i.SkillName);
+                grouped = baseSearch.Where(i => i.SourceEntity.EntityId == entity.EntityId).GroupBy(i => $"({i.SkillId},{i.SkillEffectId}) {i.SkillName})");
             else
                 grouped = baseSearch.GroupBy(i => i.SourceEntity.VisibleName);
             return grouped.Select(i => new KeyValuePair<String, Tuple<UInt64, UInt32, UInt32, UInt64>>(i.Key, Tuple.Create((UInt64)i.Sum(sum), (UInt32)i.Count(), (UInt32)i.Count(log => log.Crit), (UInt64)i.Sum(j => (Single)j.TimeAlive)))).ToDictionary(x => x.Key, x => x.Value);

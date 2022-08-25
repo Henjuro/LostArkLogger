@@ -254,10 +254,13 @@ namespace LostArkLogger
                             nameOffset += 16;
                             e.Graphics.DrawImage((Bitmap)Properties.Resources.ResourceManager.GetObject(iconFile.ToLower()), new Rectangle(2, (i + 1) * barHeight + 2, barHeight - 4, barHeight - 4), GetSpriteLocation(iconIndex), GraphicsUnit.Pixel);
                         }*/
-                        var skillid = rowText.Substring(1);
-                        skillid = skillid.Substring(0, skillid.IndexOf(")"));
-                        if (uint.TryParse(skillid, out uint parsedSkillID))
-                            rowText = Skill.GetSkillName(parsedSkillID);
+                        string skillid;
+                        string skillIdPart;
+                        skillIdPart = rowText.Substring(1, rowText.IndexOf(")") - 1);
+                        var ids = skillIdPart.Split(",");
+                        skillid = ids[0];
+                        var skillEffectId = ids[1];
+                        rowText = Skill.GetSkillName(uint.Parse(skillid), uint.Parse(skillEffectId));
                     }
                     var edge = e.Graphics.MeasureString(formattedDmg, font);
                     e.Graphics.DrawString(rowText, font, black, nameOffset + 5, (i + 1) * barHeight + heightBuffer);
