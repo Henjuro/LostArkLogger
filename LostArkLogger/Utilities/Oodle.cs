@@ -53,7 +53,7 @@ namespace LostArkLogger
         {
             var oodleSize = BitConverter.ToInt32(decompressed, 0);
             var payload = decompressed.Skip(4).ToArray();
-            if (oodleSize < 0)
+            if (oodleSize < 0 || oodleSize > 10000000)
                 return Array.Empty<byte>();
             var tempPayload = new Byte[oodleSize];
             try
