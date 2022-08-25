@@ -18,9 +18,7 @@ namespace LostArkLogger
             Properties.Settings.Default.Providers.Clear();
             Bluegrams.Application.PortableSettingsProvider.SettingsFileName = AppDomain.CurrentDomain.FriendlyName + ".ini";
             Bluegrams.Application.PortableSettingsProvider.ApplyProvider(Properties.Settings.Default);
-            if (!AdminRelauncher()) return;
             if (!IsConsole) Warning();
-            AttemptFirewallPrompt();
             if (!IsConsole)
             {
                 Application.EnableVisualStyles();
