@@ -246,7 +246,16 @@ namespace LostArkLogger
                         break;
                     case 2: //Snappy
                         //https://github.com/aloneguid/IronSnappy
-                        payload = IronSnappy.Snappy.Decode(payload.ToArray()).Skip(16).ToArray();
+                        try
+                        {
+                            payload = IronSnappy.Snappy.Decode(payload.ToArray()).Skip(16).ToArray();
+                        }
+                        catch (IOException)
+                        {
+                            if (packets.Length < packetSize) throw new Exception("bad packet maybe");
+                            packets = packets.Skip(packetSize).ToArray();
+                            return;
+                        }
                         //payload = SnappyCodec.Uncompress(payload.Skip(Properties.Settings.Default.Region == Region.Russia ? 4 : 0).ToArray()).Skip(16).ToArray();
                         break;
                     case 3: //Oodle
