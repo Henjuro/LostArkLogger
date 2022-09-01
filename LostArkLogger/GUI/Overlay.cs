@@ -14,15 +14,15 @@ namespace LostArkLogger
         {
             None,
             StatusEffectTimes,
+            RaidDamage,
             Damage,
+            BattleItems,
             Counterattacks,
             Stagger,
             Heal,
             Shield,
             TimeAlive,
             RaidTimeAlive,
-            RaidDamage,
-            BattleItems,
             Max
         }
         enum Scope // need better state, suboverlay type/etc.
