@@ -2,10 +2,10 @@
 using System.IO;
 using System.Net;
 using System.Windows.Forms;
-using LostArkLogger.Utilities;
+using InetOptimizer.Utilities;
 using System.ComponentModel;
 
-namespace LostArkLogger
+namespace InetOptimizer
 {
     public partial class MainWindow : Form, INotifyPropertyChanged
     {

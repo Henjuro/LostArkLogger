@@ -5,7 +5,7 @@ using System.Net.NetworkInformation;
 using System.Diagnostics;
 
 // https://stackoverflow.com/questions/10789898/determine-which-network-adapter-a-process-is-using
-namespace LostArkLogger.Utilities
+namespace InetOptimizer.Utilities
 {
     class NetworkUtil
     {

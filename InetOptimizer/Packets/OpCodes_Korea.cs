@@ -1,5 +1,5 @@
 using System;
-namespace LostArkLogger
+namespace InetOptimizer
 {
     public enum OpCodes_Korea : UInt16
     {

@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace LostArkLogger
+namespace InetOptimizer
 {
     public class Encounter
     {

@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace LostArkLogger.Properties {
+namespace InetOptimizer.Properties {
     using System;
     
     

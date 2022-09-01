@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace LostArkLogger.Properties {
+namespace InetOptimizer.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
@@ -38,9 +38,9 @@ namespace LostArkLogger.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("Steam")]
-        public global::LostArkLogger.Region Region {
+        public global::InetOptimizer.Region Region {
             get {
-                return ((global::LostArkLogger.Region)(this["Region"]));
+                return ((global::InetOptimizer.Region)(this["Region"]));
             }
             set {
                 this["Region"] = value;

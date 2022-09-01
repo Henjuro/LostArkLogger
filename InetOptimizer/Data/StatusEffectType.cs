@@ -1,4 +1,4 @@
-﻿namespace LostArkLogger
+﻿namespace InetOptimizer
 {    public enum StatusEffectType : int
     {
         STATUS_EFFECT_TYPE_NONE = 0,

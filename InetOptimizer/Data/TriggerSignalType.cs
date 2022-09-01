@@ -1,4 +1,4 @@
-﻿namespace LostArkLogger
+﻿namespace InetOptimizer
 {
 
     public enum TriggerSignalType : int

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace LostArkLogger
+namespace InetOptimizer
 {
     public enum Region : Byte
     {

@@ -1,5 +1,5 @@
 ﻿using System;
-namespace LostArkLogger
+namespace InetOptimizer
 {
     public class LogInfo
     {

@@ -1,4 +1,4 @@
-﻿namespace LostArkLogger
+﻿namespace InetOptimizer
 {
     partial class MainWindow
     {

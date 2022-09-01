@@ -4,9 +4,9 @@ using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
-using LostArkLogger.Utilities;
+using InetOptimizer.Utilities;
 
-namespace LostArkLogger
+namespace InetOptimizer
 {
     public class HttpBridge
     {

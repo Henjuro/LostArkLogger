@@ -1,5 +1,5 @@
 ﻿using K4os.Compression.LZ4;
-using LostArkLogger.Utilities;
+using InetOptimizer.Utilities;
 using SharpPcap;
 using System;
 using System.Collections.Generic;
@@ -9,7 +9,7 @@ using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
-namespace LostArkLogger
+namespace InetOptimizer
 {
     internal class Parser : IDisposable
     {

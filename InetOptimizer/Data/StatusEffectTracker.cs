@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 
-namespace LostArkLogger
+namespace InetOptimizer
 {
     internal class StatusEffectTracker
     {

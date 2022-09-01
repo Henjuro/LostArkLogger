@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace LostArkLogger
+namespace InetOptimizer
 {
     public class SkillBuff
     {

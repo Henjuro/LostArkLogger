@@ -6,7 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LostArkLogger.Utilities
+namespace InetOptimizer.Utilities
 {
     public static class Uploader
     {

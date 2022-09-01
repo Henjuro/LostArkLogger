@@ -1,5 +1,5 @@
 ﻿using System;
-namespace LostArkLogger
+namespace InetOptimizer
 {
     [Flags] public enum DamageModifierFlags // to remove
     {

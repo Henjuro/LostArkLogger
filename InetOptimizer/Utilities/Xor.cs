@@ -1,4 +1,4 @@
-﻿namespace LostArkLogger
+﻿namespace InetOptimizer
 {
     static class Xor
     {

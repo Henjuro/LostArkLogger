@@ -7,7 +7,7 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Security.Principal;
 using System.Windows.Forms;
-namespace LostArkLogger
+namespace InetOptimizer
 {
     internal static class Program
     {

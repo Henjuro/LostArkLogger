@@ -6,7 +6,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace LostArkLogger
+namespace InetOptimizer
 {
     public class Overlay : Form
     {
