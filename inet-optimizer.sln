@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.2.32630.192
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LostArkLogger", "LostArkLogger\LostArkLogger.csproj", "{B0808A8B-3ADC-4BB1-8927-5BCB9A519131}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InetOptimizer", "InetOptimizer\InetOptimizer.csproj", "{B0808A8B-3ADC-4BB1-8927-5BCB9A519131}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MachinaNetFramework", "MachinaNetFramework\MachinaNetFramework.csproj", "{E463D199-BA11-4B7A-A342-DD1916F8C771}"
 EndProject
