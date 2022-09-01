@@ -478,7 +478,10 @@ namespace LostArkLogger
                         Name = Npc.GetNpcName(npc.NpcType),
                         Type = Entity.EntityType.Npc
                     });
-                    Logger.AppendLog(4, npc.NpcId.ToString("X"), npc.NpcType.ToString(), Npc.GetNpcName(npc.NpcType), npc.statPair.Value[npc.statPair.StatType.IndexOf((Byte)StatType.STAT_TYPE_HP)].ToString(), npc.statPair.Value[npc.statPair.StatType.IndexOf((Byte)StatType.STAT_TYPE_MAX_HP)].ToString());
+                    var hp_pos = npc.statPair.StatType.IndexOf((Byte)StatType.STAT_TYPE_HP);
+                    var hp_max_pos = npc.statPair.StatType.IndexOf((Byte)StatType.STAT_TYPE_MAX_HP);
+                    if (hp_pos >= 0 && hp_max_pos >= 0)
+                        Logger.AppendLog(4, npc.NpcId.ToString("X"), npc.NpcType.ToString(), Npc.GetNpcName(npc.NpcType), npc.statPair.Value[hp_pos].ToString(), npc.statPair.Value[hp_max_pos].ToString());
                     statusEffectTracker.NewNpc(npcPacket);
                 }
                 else if (opcode == OpCodes.PKTRemoveObject)
