@@ -4,6 +4,7 @@ using System.Net;
 using System.Windows.Forms;
 using InetOptimizer.Utilities;
 using System.ComponentModel;
+using System.Threading;
 
 namespace InetOptimizer
 {
@@ -12,6 +13,8 @@ namespace InetOptimizer
         Parser sniffer;
         Overlay overlay;
         private int _packetCount;
+        private DateTime _lastPacketCountUpdate = DateTime.MinValue;
+        private TimeSpan _minTimeBetweenPacketCountUpdates = TimeSpan.FromSeconds(1);
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -30,7 +33,11 @@ namespace InetOptimizer
             sniffer.onPacketTotalCount += (int totalPacketCount) =>
             {
                 _packetCount = totalPacketCount;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PacketCount)));
+                if (DateTime.UtcNow - _lastPacketCountUpdate >= _minTimeBetweenPacketCountUpdates)
+                {
+                    ThreadPool.QueueUserWorkItem(info => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PacketCount))));
+                    _lastPacketCountUpdate = DateTime.UtcNow;
+                }
             };
             regionSelector.DataSource = Enum.GetValues(typeof(Region));
             regionSelector.SelectedIndex = (int)Properties.Settings.Default.Region;
