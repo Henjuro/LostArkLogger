@@ -6,8 +6,8 @@ namespace InetOptimizer
     {
         public void SteamDecode(BitReader reader)
         {
-            b_0 = reader.ReadByte();
             StatusEffectIds = reader.ReadList<UInt32>();
+            b_0 = reader.ReadByte();
             PartyId = reader.ReadUInt64();
         }
     }

@@ -6,8 +6,8 @@ namespace InetOptimizer
     {
         public void SteamDecode(BitReader reader)
         {
-            InstanceIds = reader.ReadList<UInt32>();
             ObjectId = reader.ReadUInt64();
+            InstanceIds = reader.ReadList<UInt32>();
             Reason = reader.ReadByte();
         }
     }
