@@ -29,10 +29,13 @@ namespace InetOptimizer
         {
             TopLevel,
             Encounters,
-            Player
+            Player,
+            Skill
         }
         Level level = Level.Damage;
         Scope scope = Scope.TopLevel;
+
+        uint skillId;
 
         public Overlay()
         {
@@ -220,7 +223,10 @@ namespace InetOptimizer
                     rows = encounter.GetRaidDamages((i => i.Damage), SubEntity);
                     elapsed = encounter.RaidTime;
                 }
-
+                if (level == Level.Damage && scope == Scope.Skill)
+                {
+                    rows = encounter.GetHits(SubEntity, skillId);
+                }
                 var maxDamage = rows.Count == 0 ? 0 : rows.Max(b => b.Value.Item1);
                 var totalDamage = rows.Values.Sum(b => (Single)b.Item1);
                 orderedRows = rows.OrderByDescending(b => b.Value);
@@ -228,6 +234,10 @@ namespace InetOptimizer
                 {
                     var playerDmg = orderedRows.ElementAt(i);
                     var rowText = playerDmg.Key;
+                    if (scope == Scope.Skill)
+                    {
+                        rowText = rowText.Substring(rowText.IndexOf(":")+2);
+                    }
                     var barWidth = ((Single)playerDmg.Value.Item1 / maxDamage) * Size.Width;
                     //if (barWidth < .3f) continue;
                     e.Graphics.FillRectangle(brushes[i % brushes.Count], 0, (i + 1) * barHeight, barWidth, barHeight);
@@ -311,11 +321,22 @@ namespace InetOptimizer
                         }
 
                     }
-                    if (scope == Scope.Encounters)
+                    else if (scope == Scope.Encounters)
                     {
                         encounter = sniffer.Encounters.ElementAt(sniffer.Encounters.Count - index - 1);
                         notCurrentEncounter = (index > 0);
                         SwitchOverlay(Scope.TopLevel);
+                    }
+                    else if (scope == Scope.Player && level == Level.Damage)
+                    {
+                        string elementKey = orderedRows.ElementAt(index).Key;
+                        string skillid;
+                        string skillIdPart;
+                        skillIdPart = elementKey.Substring(1, elementKey.IndexOf(")") - 1);
+                        var ids = skillIdPart.Split(",");
+                        skillid = ids[0];
+                        this.skillId = uint.Parse(skillid);
+                        SwitchOverlay(Scope.Skill);
                     }
                 }
                 if (new Rectangle(Size.Width - 50, barHeight / 4, 10, barHeight / 2).Contains(e.Location)) SwitchOverlay(Scope.Encounters);
@@ -328,6 +349,8 @@ namespace InetOptimizer
                     SwitchOverlay(Scope.TopLevel);
                 else if (scope == Scope.TopLevel)
                     SwitchOverlay(Scope.Encounters);
+                else if (scope == Scope.Skill)
+                    SwitchOverlay(Scope.Player);
             }
         }
         void SwitchOverlay(bool progress)
@@ -345,7 +368,7 @@ namespace InetOptimizer
         }
         void SwitchOverlay(Scope type)
         {
-            if (type != Scope.Player) SubEntity = null;
+            if (type != Scope.Player && type != Scope.Skill) SubEntity = null;
             scope = type;
             Invalidate();
         }

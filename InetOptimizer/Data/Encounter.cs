@@ -67,10 +67,20 @@ namespace InetOptimizer
             }
         }
 
+        // Tuple<damage value, 1, number of crits, 0>
+        public Dictionary<String, Tuple<UInt64, UInt32, UInt32, UInt64>> GetHits(Entity entity, uint skillId)
+        {
+            var baseSearch = Infos.Where(i => i.SourceEntity.Type == Entity.EntityType.Player && i.Duration == TimeSpan.Zero);
+            IEnumerable<LogInfo> grouped = baseSearch.Where(i => i.SkillId == skillId && (i.SourceEntity.EntityId == entity.EntityId || i.SourceEntity.VisibleName == entity.VisibleName));
+            int c = 0;
+            return grouped.Select(i => new KeyValuePair<String, Tuple<UInt64, UInt32, UInt32, UInt64>>($"{i.Time.Ticks} - {c++}: {i.SkillName}", Tuple.Create(i.Damage, 1u, i.Crit ? 1u : 0u, (UInt64)1))).ToDictionary(x => x.Key, x => x.Value);
+            //return grouped.Select(i => new KeyValuePair<String, UInt64>(i.Key, (UInt64)i.Sum(j => (Single)j.Damage))).ToDictionary(x => x.Key, x => x.Value);
+        }
+
         // Tuple<damage value, number of hits, number of crits, time alive>
         public Dictionary<String, Tuple<UInt64, UInt32, UInt32, UInt64>> GetDamages(Func<LogInfo, float> sum, Entity entity = default(Entity))
         {
-            var baseSearch = Infos.Where(i => i.SourceEntity.Type == Entity.EntityType.Player);
+            var baseSearch = Infos.Where(i => i.SourceEntity.Type == Entity.EntityType.Player && i.Duration == TimeSpan.Zero);
             IEnumerable<IGrouping<String, LogInfo>> grouped;
             if (entity != default(Entity))
                 grouped = baseSearch.Where(i => i.SourceEntity.EntityId == entity.EntityId || i.SourceEntity.VisibleName == entity.VisibleName).GroupBy(i => $"({i.SkillId},{i.SkillEffectId}) {i.SkillName}");
@@ -82,7 +92,7 @@ namespace InetOptimizer
         // Tuple<damage value, number of hits, number of crits, time alive>
         public Dictionary<String, Tuple<UInt64, UInt32, UInt32, UInt64>> GetRaidDamages(Func<LogInfo, float> sum, Entity entity = default(Entity))
         {
-            var baseSearch = RaidInfos.Where(i => i.SourceEntity.Type == Entity.EntityType.Player);
+            var baseSearch = RaidInfos.Where(i => i.SourceEntity.Type == Entity.EntityType.Player && i.Duration == TimeSpan.Zero);
             IEnumerable<IGrouping<String, LogInfo>> grouped;
             if (entity != default(Entity))
                 grouped = baseSearch.Where(i => i.SourceEntity.EntityId == entity.EntityId).GroupBy(i => $"({i.SkillId},{i.SkillEffectId}) {i.SkillName})");
