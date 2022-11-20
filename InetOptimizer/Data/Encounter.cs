@@ -113,5 +113,18 @@ namespace InetOptimizer
                 grouped = baseSearch.GroupBy(i => i.SourceEntity.VisibleName);
             return grouped.Select(i => new KeyValuePair<String, Tuple<UInt64, UInt32, UInt32, UInt64>>(i.Key, Tuple.Create((UInt64)i.Sum(sum), (UInt32)0, (UInt32)0, (UInt64)i.Sum(j => (Single)j.TimeAlive)))).ToDictionary(x => x.Key, x => x.Value);
         }
+
+        // Tuple<damage value, number of hits, number of hits with intense tune/attack inrease, number hits with sound shock>
+        public Dictionary<String, Tuple<UInt64, UInt32, UInt32, UInt64>> GetAttackBuffStats(Func<LogInfo, float> sum, Entity entity = default(Entity))
+        {
+            var baseSearch = Infos.Where(i => i.SourceEntity.Type == Entity.EntityType.Player && i.Duration == TimeSpan.Zero);
+            IEnumerable<IGrouping<String, LogInfo>> grouped;
+            if (entity != default(Entity))
+                grouped = baseSearch.Where(i => i.SourceEntity.EntityId == entity.EntityId || i.SourceEntity.VisibleName == entity.VisibleName).GroupBy(i => $"({i.SkillId},{i.SkillEffectId}) {i.SkillName}");
+            else
+                grouped = baseSearch.GroupBy(i => i.SourceEntity.VisibleName);
+            return grouped.Select(i => new KeyValuePair<String, Tuple<UInt64, UInt32, UInt32, UInt64>>(i.Key, Tuple.Create((UInt64)i.Sum(sum), (UInt32)i.Count(), (UInt32)i.Count(log => log.AttackBuff), (UInt64)i.Count(log => log.DamageDebuff)))).ToDictionary(x => x.Key, x => x.Value);
+            //return grouped.Select(i => new KeyValuePair<String, UInt64>(i.Key, (UInt64)i.Sum(j => (Single)j.Damage))).ToDictionary(x => x.Key, x => x.Value);
+        }
     }
 }
