@@ -30,6 +30,7 @@ namespace LostArkLogger
         Byte[] fragmentedPacket = new Byte[0];
         private string _localPlayerName = "You";
         private uint _localGearLevel = 0;
+        private ulong ownId = 0;
         public bool WasWipe = false;
         public bool WasKill = false;
         public bool DisplayNames = true;
@@ -129,6 +130,7 @@ namespace LostArkLogger
             var targetEntity = currentEncounter.Entities.GetOrAdd(dmgEvent.TargetId);
             var destinationName = targetEntity != null ? targetEntity.VisibleName : dmgEvent.TargetId.ToString("X");
             //var log = new LogInfo { Time = DateTime.Now, Source = sourceName, PC = sourceName.Contains("("), Destination = destinationName, SkillName = skillName, Crit = (dmgEvent.FlagsMaybe & 0x81) > 0, BackAttack = (dmgEvent.FlagsMaybe & 0x10) > 0, FrontAttack = (dmgEvent.FlagsMaybe & 0x20) > 0 };
+            // 211601 heavenly tune
             var log = new LogInfo
             {
                 Time = DateTime.Now,
@@ -140,7 +142,9 @@ namespace LostArkLogger
                 Damage = (ulong)dmgEvent.Damage,
                 Crit = hitFlag == HitFlag.HIT_FLAG_CRITICAL || hitFlag == HitFlag.HIT_FLAG_DOT_CRITICAL,
                 BackAttack = hitOption == HitOption.HIT_OPTION_BACK_ATTACK,
-                FrontAttack = hitOption == HitOption.HIT_OPTION_FRONTAL_ATTACK
+                FrontAttack = hitOption == HitOption.HIT_OPTION_FRONTAL_ATTACK,
+                AttackBuff = statusEffectTracker.HasAnyStatusEffect(sourceEntity.EntityId == ownId ? sourceEntity.EntityId : sourceEntity.PartyId, 211606, 211749, 361708, 360506),
+                DamageDebuff = statusEffectTracker.HasAnyStatusEffect(targetEntity.EntityId, 210230, 360506)
             };
             onCombatEvent?.Invoke(log);
             currentEncounter.RaidInfos.Add(log);
@@ -314,6 +318,7 @@ namespace LostArkLogger
 
                     currentEncounter = new Encounter();
                     Encounters.Add(currentEncounter);
+                    ownId = env.PlayerId;
                     var temp = new Entity
                     {
                         EntityId = env.PlayerId,
@@ -386,7 +391,8 @@ namespace LostArkLogger
                             WasKill = false;
                         }
 
-                        if (Encounters.Last().Infos.Count <= 50)
+                        
+                        if (Encounters.Count > 0 && Encounters.Last().Infos.Count <= 50)
                         {
                             Encounters.Remove(Encounters.Last());
                         }

@@ -1,18 +1,20 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace LostArkLogger
 {
     internal class StatusEffectTracker
     {
-        private readonly ConcurrentDictionary<UInt64, ConcurrentDictionary<UInt64, StatusEffect>> StatusEffectRegistry;
+        private readonly ConcurrentDictionary<UInt64, Tuple<ConcurrentDictionary<UInt64, StatusEffect>, ConcurrentDictionary<UInt32, int>>> StatusEffectRegistry;
         public Parser parser;
         public event Action OnChange;
         public event Action<StatusEffect> OnStatusEffectStarted;
         public event Action<StatusEffect, TimeSpan> OnStatusEffectEnded;
         public StatusEffectTracker(Parser p)
         {
-            StatusEffectRegistry = new ConcurrentDictionary<UInt64, ConcurrentDictionary<UInt64, StatusEffect>>();
+            StatusEffectRegistry = new ConcurrentDictionary<UInt64, Tuple<ConcurrentDictionary<UInt64, StatusEffect>, ConcurrentDictionary<UInt32, int>>>();
             parser = p;
             parser.beforeNewZone += BeforeNewZone;
         }
@@ -22,7 +24,7 @@ namespace LostArkLogger
             // cancel remaining statuseffects so they get added to the old encounter
             foreach(var statusEffectList in StatusEffectRegistry)
             {
-                foreach(var statusEffect in statusEffectList.Value)
+                foreach(var statusEffect in statusEffectList.Value.Item1)
                 {
                     var duration = (DateTime.UtcNow - statusEffect.Value.Started);
                     OnStatusEffectEnded?.Invoke(statusEffect.Value, duration);
@@ -61,18 +63,26 @@ namespace LostArkLogger
             OnChange?.Invoke();
         }
 
-        private void ProcessStatusEffectData(StatusEffectData effectData, UInt64 targetId, UInt64 sourceId, ConcurrentDictionary<UInt64, StatusEffect> effectList, StatusEffect.StatusEffectType effectType)
+        private void ProcessStatusEffectData(StatusEffectData effectData, UInt64 targetId, UInt64 sourceId, Tuple<ConcurrentDictionary<UInt64, StatusEffect>, ConcurrentDictionary<UInt32, int>> effectList, StatusEffect.StatusEffectType effectType)
         {
             Entity sourceEntity = parser.GetSourceEntity(sourceId);
             var amount = (effectData.hasValue > 0 && effectData.Value != null && effectData.Value.Length == 4) ? BitConverter.ToInt32(effectData.Value, 0) : 0;
             var statusEffect = new StatusEffect { Started = DateTime.UtcNow, StatusEffectId = effectData.StatusEffectId, InstanceId = effectData.EffectInstanceId, SourceId = sourceEntity.EntityId, TargetId = targetId, Type = effectType, Value = amount };
             // end this buf now, it got refreshed
-            if (effectList.TryRemove(statusEffect.InstanceId, out var oldStatusEffect))
+            if (RemoveStatusEffect(effectList, statusEffect.InstanceId, out var oldStatusEffect))
             {
                 var duration = DateTime.UtcNow - oldStatusEffect.Started;
                 OnStatusEffectEnded?.Invoke(oldStatusEffect, duration);
             }
-            effectList.TryAdd(statusEffect.InstanceId, statusEffect);
+            effectList.Item1.TryAdd(statusEffect.InstanceId, statusEffect);
+            if (!effectList.Item2.ContainsKey(statusEffect.StatusEffectId))
+            {
+                effectList.Item2.TryAdd(statusEffect.StatusEffectId, 1);
+            }
+            else
+            {
+                effectList.Item2[statusEffect.StatusEffectId] = effectList.Item2[statusEffect.StatusEffectId] + 1;
+            }
             OnStatusEffectStarted(statusEffect);
         }
 
@@ -101,7 +111,7 @@ namespace LostArkLogger
             var statusEffectList = GetStatusEffectList(effect.PartyId);
             foreach (var effectInstanceId in effect.StatusEffectIds)
             {
-                if (statusEffectList.TryRemove(effectInstanceId, out var oldStatusEffect))
+                if (RemoveStatusEffect(statusEffectList, effectInstanceId, out var oldStatusEffect))
                 {
                     var duration = DateTime.UtcNow - oldStatusEffect.Started;
                     OnStatusEffectEnded?.Invoke(oldStatusEffect, duration);
@@ -115,7 +125,7 @@ namespace LostArkLogger
             var statusEffectList = GetStatusEffectList(effect.ObjectId);
             foreach (var effectInstanceId in effect.InstanceIds)
             {
-                if (statusEffectList.TryRemove(effectInstanceId, out var oldStatusEffect))
+                if (RemoveStatusEffect(statusEffectList, effectInstanceId, out var oldStatusEffect))
                 {
                     var duration = DateTime.UtcNow - oldStatusEffect.Started;
                     OnStatusEffectEnded?.Invoke(oldStatusEffect, duration);
@@ -124,11 +134,31 @@ namespace LostArkLogger
             OnChange?.Invoke();
         }
 
+        private bool RemoveStatusEffect(Tuple<ConcurrentDictionary<UInt64, StatusEffect>, ConcurrentDictionary<UInt32, int>> effectList, ulong effectInstanceId, out StatusEffect oldStatusEffect)
+        {
+            if(effectList.Item1.TryRemove(effectInstanceId, out oldStatusEffect))
+            {
+                if (effectList.Item2.TryGetValue(oldStatusEffect.StatusEffectId, out var count))
+                {
+                    if (count > 1)
+                    {
+                        effectList.Item2[oldStatusEffect.StatusEffectId] = (count - 1);
+                    }
+                    else
+                    {
+                        effectList.Item2.TryRemove(oldStatusEffect.StatusEffectId, out _);
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
+
         public void DeathNotify(PKTDeathNotify packet)
         {
             if(StatusEffectRegistry.TryRemove(packet.TargetId, out var statusEffectList))
             {
-                foreach (var statusEffect in statusEffectList)
+                foreach (var statusEffect in statusEffectList.Item1)
                 {
                     var oldStatusEffect = statusEffect.Value;
                     var duration = DateTime.UtcNow - oldStatusEffect.Started;
@@ -140,23 +170,35 @@ namespace LostArkLogger
 
         public int GetStatusEffectCountFor(UInt64 PlayerId)
         {
-            return GetStatusEffectList(PlayerId).Count;
+            return GetStatusEffectList(PlayerId).Item1.Count;
         }
 
-        public ConcurrentDictionary<UInt64, ConcurrentDictionary<UInt64, StatusEffect>> GetStatusEffectRegistry()
+        public ConcurrentDictionary<UInt64, Tuple<ConcurrentDictionary<UInt64, StatusEffect>, ConcurrentDictionary<UInt32, int>>> GetStatusEffectRegistry()
         {
             return StatusEffectRegistry;
         }
 
-        private ConcurrentDictionary<UInt64, StatusEffect> GetStatusEffectList(UInt64 targetId)
+        private Tuple<ConcurrentDictionary<UInt64, StatusEffect>, ConcurrentDictionary<UInt32, int>> GetStatusEffectList(UInt64 targetId)
         {
             if (!StatusEffectRegistry.TryGetValue(targetId, out var statusEffectList))
             {
-                statusEffectList = new ConcurrentDictionary<UInt64, StatusEffect>();
+                statusEffectList = Tuple.Create(new ConcurrentDictionary<UInt64, StatusEffect>(), new ConcurrentDictionary<UInt32, int>());
                 StatusEffectRegistry.TryAdd(targetId, statusEffectList);
             }
             return statusEffectList;
         }
 
+        public bool HasAnyStatusEffect(UInt64 targetId, params UInt32[] statusEffectIds)
+        {
+            if (StatusEffectRegistry.TryGetValue(targetId, out var statusEffectList))
+            {
+                foreach (var effectId in statusEffectIds)
+                {
+                    if (statusEffectList.Item2.ContainsKey(effectId))
+                        return true;
+                }
+            }
+            return false;
+        }
     }
 }
