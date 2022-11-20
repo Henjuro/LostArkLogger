@@ -1,4 +1,5 @@
-﻿using System;
+﻿using InetOptimizer.Properties;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -21,7 +22,7 @@ namespace InetOptimizer
         [DllImport(remoteCaputreDll, CallingConvention = CallingConvention.Cdecl)]
         public static extern int setup();
         private static GetPacketData RetriveDataDelegate;
-        public IPAddress myip = IPAddress.Parse("192.168.1.100");
+        public IPAddress myip = IPAddress.Parse(Properties.Settings.Default.ipfilter);
 
         public RemoteParser() : base()
         {

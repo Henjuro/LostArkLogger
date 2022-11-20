@@ -1,5 +1,5 @@
 ﻿<?xml version='1.0' encoding='utf-8'?>
-<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="LostArkLogger.Properties" GeneratedClassName="Settings">
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="InetOptimizer.Properties" GeneratedClassName="Settings">
   <Profiles />
   <Settings>
     <Setting Name="IgnoreWarning" Type="System.Boolean" Scope="User">
@@ -28,6 +28,9 @@
     </Setting>
     <Setting Name="F1Size" Type="System.Drawing.Size" Scope="User">
       <Value Profile="(Default)">314, 184</Value>
+    </Setting>
+    <Setting Name="ipfilter" Type="System.String" Scope="User">
+      <Value Profile="(Default)">192.168.1.100</Value>
     </Setting>
   </Settings>
 </SettingsFile>
