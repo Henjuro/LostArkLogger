@@ -139,7 +139,12 @@ namespace LostArkLogger
             bool supportDebuffActive = false;
             if (isInParty) {
                 attackbuffActive = sourceEntity.EntityId == _localEntityId ? statusEffectTracker.EntityHasAnyStatusEffect(sourceEntity.EntityId, 211606, 211749, 361708, 360506) : statusEffectTracker.PartyMemberHasAnyStatusEffect(sourceEntity.PartyId, 211606, 211749, 361708, 360506);
-                supportDebuffActive = PartyTracker.Instance.IsCharacterIdInParty(sourceEntity.PartyId) && statusEffectTracker.EntityHasAnyStatusEffectFromParty(targetEntity.EntityId, PartyTracker.Instance.GetPartyIdFromCharacterId(sourceEntity.PartyId), 210230, 360506);
+                supportDebuffActive = statusEffectTracker.EntityHasAnyStatusEffectFromParty(targetEntity.EntityId, PartyTracker.Instance.GetPartyIdFromCharacterId(sourceEntity.PartyId), 210230, 360506);
+            }
+            else
+            {
+                attackbuffActive = sourceEntity.EntityId == _localEntityId ? statusEffectTracker.EntityHasAnyStatusEffect(sourceEntity.EntityId, 211606, 211749, 361708, 360506) : false;
+                supportDebuffActive = statusEffectTracker.EntityHasAnyStatusEffect(targetEntity.EntityId, 210230, 360506);
             }
             var log = new LogInfo
             {
@@ -347,7 +352,8 @@ namespace LostArkLogger
                         PartyId = _localCharacterId
                     };
                     currentEncounter.Entities.TryAdd(env.PlayerId, temp);
-
+                    if (_localCharacterId != 0)
+                        PartyTracker.Instance.ProcessPKTInitEnv(env, _localCharacterId);
                     onNewZone?.Invoke();
                     Logger.AppendLog(1, env.PlayerId.ToString("X"));
                 }
@@ -448,6 +454,7 @@ namespace LostArkLogger
 
                     Logger.AppendLog(3, pc.PlayerId.ToString("X"), pc.Name, pc.ClassId.ToString(), Npc.GetPcClass(pc.ClassId), pc.Level.ToString(), tempEntity.GearScore, currentHp, maxHp);
                     PCIdMapper.Instance.AddCharacterIdAndEntityIdMapping(pc.CharacterId, pc.PlayerId);
+                    PartyTracker.Instance.ProcessPKTInitPC(pc);
                     statusEffectTracker.InitPc(pc);
                     onNewZone?.Invoke();
                 }
@@ -654,7 +661,7 @@ namespace LostArkLogger
                 else if (opcode == OpCodes.PKTPartyInfo)
                 {
                     var partyInfo = new PKTPartyInfo(new BitReader(payload));
-                    PartyTracker.Instance.ProcessPartyPKT(partyInfo);
+                    PartyTracker.Instance.ProcessPKTPartyInfo(partyInfo);
                 }
                 if (packets.Length < packetSize) throw new Exception("bad packet maybe");
                 packets = packets.Skip(packetSize).ToArray();
@@ -736,7 +743,16 @@ namespace LostArkLogger
         {
             Entity dstEntity;
             if (statusEffect.Type == StatusEffect.StatusEffectType.Party)
-                dstEntity = currentEncounter.Entities.GetOrAdd(PCIdMapper.Instance.GetEntityIdFormCharacterId(statusEffect.TargetId));
+            {
+                try
+                {
+                    dstEntity = currentEncounter.Entities.GetOrAdd(PCIdMapper.Instance.GetEntityIdFormCharacterId(statusEffect.TargetId));
+                }
+                catch(KeyNotFoundException)
+                {
+                    return;
+                }
+            }
             else
                 dstEntity = currentEncounter.Entities.GetOrAdd(statusEffect.TargetId);
             var log = new LogInfo

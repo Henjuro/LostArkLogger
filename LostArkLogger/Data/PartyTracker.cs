@@ -10,10 +10,9 @@ namespace LostArkLogger
     {
         private static readonly PartyTracker instance = new PartyTracker();
         private Dictionary<UInt64, UInt32> CharacterIdToPartyId = new Dictionary<UInt64, UInt32>();
-        private Dictionary<UInt64, UInt64> EntityIdToCharacterId = new Dictionary<UInt64, UInt64>();
+        private Dictionary<UInt64, UInt32> EntityIdToPartyId = new();
         private Dictionary<UInt64, UInt64> CharacterIdToEntityId = new Dictionary<UInt64, UInt64>();
         private Dictionary<UInt64, UInt32> EntityIdToPartyId = new Dictionary<UInt64, UInt32>();
-        private Dictionary<UInt32, PartyInfo> PartyInformations = new Dictionary<UInt32, PartyInfo>();
 
         private PartyTracker() { }
 
@@ -22,7 +21,7 @@ namespace LostArkLogger
             get { return instance; }
         }
 
-        public void ProcessPartyPKT(PKTPartyInfo pkt)
+        public void ProcessPKTPartyInfo(PKTPartyInfo pkt)
         {
             foreach(var x in pkt.MemberDatas)
             {
@@ -39,6 +38,21 @@ namespace LostArkLogger
             CharacterIdToEntityId[pkt.pCStruct.PartyId] = pkt.pCStruct.PlayerId;
             if (CharacterIdToPartyId.ContainsKey(pkt.pCStruct.PartyId))
                 EntityIdToPartyId[pkt.pCStruct.PlayerId] = CharacterIdToPartyId[pkt.pCStruct.PartyId];
+        }
+
+        public void ProcessPKTInitPC(PKTInitPC pkt)
+        {
+            EntityIdToCharacterId[pkt.PlayerId] = pkt.CharacterId;
+            CharacterIdToEntityId[pkt.CharacterId] = pkt.PlayerId;
+            if (CharacterIdToPartyId.ContainsKey(pkt.CharacterId))
+                EntityIdToPartyId[pkt.PlayerId] = CharacterIdToPartyId[pkt.CharacterId];
+        }
+        public void ProcessPKTInitEnv(PKTInitEnv pkt, UInt64 localCharacterId)
+        {
+            EntityIdToCharacterId[pkt.PlayerId] = localCharacterId;
+            CharacterIdToEntityId[localCharacterId] = pkt.PlayerId;
+            if (CharacterIdToPartyId.ContainsKey(localCharacterId))
+                EntityIdToPartyId[pkt.PlayerId] = CharacterIdToPartyId[localCharacterId];
         }
 
         public bool IsCharacterIdInParty(UInt64 characterId)
