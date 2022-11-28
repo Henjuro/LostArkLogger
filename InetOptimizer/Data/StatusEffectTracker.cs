@@ -229,8 +229,7 @@ namespace InetOptimizer
                         if (PartyTracker.Instance.IsEntityIdInParty(statusEffectEntry.Value.SourceId))
                         {
                             var sourcePartyId = PartyTracker.Instance.GetPartyIdFromEntityId(statusEffectEntry.Value.SourceId);
-                            if (sourcePartyId == partyId)
-                                return true;
+                            return sourcePartyId == partyId;
                         }
                     }
                 }
