@@ -10,16 +10,16 @@ namespace InetOptimizer.Utilities
     public static class Logger
     {
         static string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        static string logsPath = Path.Combine(documentsPath, "Lost Ark Logs");
+        static string logsPath = Path.Combine(documentsPath, "InetOptimizer");
 
-        public static bool debugLog = false;
+        public static bool debugLog = true;
 
         static BinaryWriter logger;
         static FileStream logStream;
 
         private static readonly object LogFileLock = new object();
         private static readonly object DebugFileLock = new object();
-        public static string fileName = logsPath + "\\LostArk_" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss") + ".log";
+        public static string fileName = logsPath + "\\InetOptimizer_" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss") + ".log";
 
         static Logger()
         {
@@ -27,7 +27,7 @@ namespace InetOptimizer.Utilities
         }
         public static void StartNewLogFile()
         {
-            fileName = logsPath + "\\LostArk_" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss") + ".log";
+            fileName = logsPath + "\\InetOptimizer_" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss") + ".log";
         }
         public static event Action<string> onLogAppend;
         static bool InittedLog = false;

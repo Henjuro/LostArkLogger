@@ -53,7 +53,7 @@ namespace InetOptimizer
         }
         public override string ToString()
         {
-            return $"IID: {InstanceId:X} | StatusEffectId: {StatusEffectId:X} | tID: {TargetId:X} | sID: {SourceId:X} | Type: {Type}";
+            return $"IID: {InstanceId:X} | StatusEffectId: {StatusEffectId:X} | StatusEffectName: {SkillBuff.GetSkillBuffName(StatusEffectId)} | tID: {TargetId:X} | sID: {SourceId:X} | Type: {Type}";
         }
 
         public enum StatusEffectType

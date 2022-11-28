@@ -70,14 +70,17 @@ namespace InetOptimizer
             Entity sourceEntity = parser.GetSourceEntity(sourceId);
             var amount = (effectData.hasValue > 0 && effectData.Value != null && effectData.Value.Length == 4) ? BitConverter.ToInt32(effectData.Value, 0) : 0;
             var statusEffect = new StatusEffect { Started = DateTime.UtcNow, StatusEffectId = effectData.StatusEffectId, InstanceId = effectData.EffectInstanceId, SourceId = sourceEntity.EntityId, TargetId = targetId, Type = effectType, Value = amount };
+            System.Diagnostics.Debug.WriteLine($"Processing Status Effect Data. InstanceId: {statusEffect.InstanceId:X} TargetId: {targetId:X} SourceId: {sourceEntity.EntityId:X} SourceVisibleName: {sourceEntity.VisibleName} EffectId: {statusEffect.StatusEffectId} StatusEffectName: {SkillBuff.GetSkillBuffName(statusEffect.StatusEffectId)} Type: {statusEffect.Type} Value: {statusEffect.Value}");
             // end this buf now, it got refreshed
             if (RemoveStatusEffect(effectList, statusEffect.InstanceId, out var oldStatusEffect))
             {
+                System.Diagnostics.Debug.WriteLine($"Status Effect is getting replaced InstanceId: {oldStatusEffect.InstanceId:X}");
                 var duration = DateTime.UtcNow - oldStatusEffect.Started;
                 OnStatusEffectEnded?.Invoke(oldStatusEffect, duration);
             }
             if (effectList.Item1.TryAdd(statusEffect.InstanceId, statusEffect))
             {
+                System.Diagnostics.Debug.WriteLine($"Status Effect got Added InstanceId: {statusEffect.InstanceId:X}");
                 if (!effectList.Item2.ContainsKey(statusEffect.StatusEffectId))
                 {
                     effectList.Item2.TryAdd(statusEffect.StatusEffectId, 1);
@@ -106,6 +109,7 @@ namespace InetOptimizer
                 if (effect.PlayerIdOnRefresh != 0x0)
                 {
                     applierId = effect.PlayerIdOnRefresh;
+                    System.Diagnostics.Debug.WriteLine($"Replacing sourceId: {statusEffect.SourceId:X} with PlayerIdOnRefresh: {applierId:X} StatusEffectName: {SkillBuff.GetSkillBuffName(statusEffect.StatusEffectId)}");
                 }
                 var statusEffectList = GetStatusEffectList(effect.PartyId, StatusEffect.StatusEffectType.Party);
                 ProcessStatusEffectData(statusEffect, effect.PartyId, applierId, statusEffectList, StatusEffect.StatusEffectType.Party);
@@ -116,10 +120,12 @@ namespace InetOptimizer
         public void PartyRemove(PKTPartyStatusEffectRemoveNotify effect)
         {
             var statusEffectList = GetStatusEffectList(effect.PartyId, StatusEffect.StatusEffectType.Party);
+            System.Diagnostics.Debug.WriteLine($"Removing Party StatusEffect from target PartyId: {effect.PartyId:X}");
             foreach (var effectInstanceId in effect.StatusEffectIds)
             {
                 if (RemoveStatusEffect(statusEffectList, effectInstanceId, out var oldStatusEffect))
                 {
+                    System.Diagnostics.Debug.WriteLine($"Removed {oldStatusEffect.InstanceId:X} from {effect.PartyId:X} StatusEffectName: {SkillBuff.GetSkillBuffName(oldStatusEffect.StatusEffectId)}");
                     var duration = DateTime.UtcNow - oldStatusEffect.Started;
                     OnStatusEffectEnded?.Invoke(oldStatusEffect, duration);
                 }
@@ -130,10 +136,12 @@ namespace InetOptimizer
         public void Remove(PKTStatusEffectRemoveNotify effect)
         {
             var statusEffectList = GetStatusEffectList(effect.ObjectId, StatusEffect.StatusEffectType.Local);
+            System.Diagnostics.Debug.WriteLine($"Removing StatusEffect from target EntityId: {effect.ObjectId:X}");
             foreach (var effectInstanceId in effect.InstanceIds)
             {
                 if (RemoveStatusEffect(statusEffectList, effectInstanceId, out var oldStatusEffect))
                 {
+                    System.Diagnostics.Debug.WriteLine($"Removed {oldStatusEffect.InstanceId:X} from {effect.ObjectId:X} StatusEffectName: {SkillBuff.GetSkillBuffName(oldStatusEffect.StatusEffectId)}");
                     var duration = DateTime.UtcNow - oldStatusEffect.Started;
                     OnStatusEffectEnded?.Invoke(oldStatusEffect, duration);
                 }

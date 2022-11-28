@@ -15,6 +15,8 @@ namespace InetOptimizer
         [STAThread]
         static void Main(string[] args)
         {
+            Trace.Listeners.Add(new TextWriterTraceListener("StatusEffectDebug.log", "FileLogListener"));
+            System.Diagnostics.Debug.AutoFlush = true;
             Properties.Settings.Default.Providers.Clear();
             Bluegrams.Application.PortableSettingsProvider.SettingsFileName = AppDomain.CurrentDomain.FriendlyName + ".ini";
             Bluegrams.Application.PortableSettingsProvider.ApplyProvider(Properties.Settings.Default);

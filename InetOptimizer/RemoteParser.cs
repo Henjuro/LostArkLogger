@@ -1,4 +1,5 @@
 ﻿using InetOptimizer.Properties;
+using InetOptimizer.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -92,7 +93,10 @@ namespace InetOptimizer
                         }
                     }
                     if (bytes != null)
+                    {
+                        Logger.DoDebugLog(bytes);
                         ProcessPacket(bytes?.ToList());
+                    }
                 }
             }
 

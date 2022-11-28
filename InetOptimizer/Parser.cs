@@ -296,6 +296,12 @@ namespace InetOptimizer
                     }
                 }
                 */
+
+                if (Search(payload, new byte[] { 0x14, 0x8B, 0xEB }) >= 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Opcode: {Enum.GetName(typeof(OpCodes), opcode)} found with 0x148BEB");
+                    Logger.AppendLog(88484, ((int)opcode).ToString(), BitConverter.ToString(payload).Replace("-", ""));
+                }
                 if (opcode == OpCodes.PKTTriggerStartNotify)
                 {
                     var trigger = new PKTTriggerStartNotify(new BitReader(payload));
@@ -370,6 +376,7 @@ namespace InetOptimizer
 
                     onNewZone?.Invoke();
                     Logger.AppendLog(1, env.PlayerId.ToString("X"));
+                    System.Diagnostics.Debug.WriteLine($"Own EntityId: {env.PlayerId:X}");
                 }
                 else if (opcode == OpCodes.PKTRaidBossKillNotify //Packet sent for boss kill, wipe or start
                          || opcode == OpCodes.PKTTriggerBossBattleStatus
@@ -438,6 +445,7 @@ namespace InetOptimizer
                         }
                         Encounters.Add(currentEncounter);
                         Logger.AppendLog(2);
+                        System.Diagnostics.Debug.WriteLine("RAID SPLIT");
                     });
                 }
                 else if (opcode == OpCodes.PKTInitPC)
@@ -461,6 +469,7 @@ namespace InetOptimizer
                         Type = Entity.EntityType.Player,
                         GearLevel = _localGearLevel
                     };
+                    System.Diagnostics.Debug.WriteLine($"EntityId: {tempEntity.EntityId:X} Name: {tempEntity.Name} ClassName: {tempEntity.ClassName} Type: {tempEntity.Type}");
                     currentEncounter.Entities.AddOrUpdate(tempEntity);
 
                     var currentHp = pc.statPair.Value[pc.statPair.StatType.IndexOf((byte)StatType.STAT_TYPE_HP)].ToString();
@@ -485,6 +494,7 @@ namespace InetOptimizer
                         GearLevel = pc.GearLevel,
                         dead = false
                     };
+                    System.Diagnostics.Debug.WriteLine($"EntityId: {temp.EntityId:X} CharacterId: {temp.PartyId:X} Name: {temp.Name} ClassName: {temp.ClassName} Type: {temp.Type}");
                     if (currentEncounter.Entities.ContainsKey(temp.EntityId))
                     {
                         temp.dead = currentEncounter.Entities.GetOrAdd(temp.EntityId).dead;
@@ -514,6 +524,9 @@ namespace InetOptimizer
                     if (hp_pos >= 0 && hp_max_pos >= 0)
                         Logger.AppendLog(4, npc.NpcId.ToString("X"), npc.NpcType.ToString(), Npc.GetNpcName(npc.NpcType), npc.statPair.Value[hp_pos].ToString(), npc.statPair.Value[hp_max_pos].ToString());
                     statusEffectTracker.NewNpc(npcPacket);
+
+                    System.Diagnostics.Debug.WriteLine($"EntityId: {npc.NpcId:X} Name: {Npc.GetNpcName(npc.NpcType)} Type: {Entity.EntityType.Npc}");
+
                 }
                 else if (opcode == OpCodes.PKTRemoveObject)
                 {
@@ -678,6 +691,63 @@ namespace InetOptimizer
                 {
                     var partyInfo = new PKTPartyInfo(new BitReader(payload));
                     PartyTracker.Instance.ProcessPartyPKT(partyInfo);
+                    System.Diagnostics.Debug.WriteLine("Printing PartyInfo");
+                    MemberInfo[] members = partyInfo.GetType().GetMembers(BindingFlags.Public | BindingFlags.Instance);
+                    foreach (MemberInfo memberInfo in members)
+                    {
+  
+
+                            if (memberInfo.MemberType == MemberTypes.Field)
+                            {
+                                FieldInfo fi = (FieldInfo)memberInfo;
+
+                                object value = fi.GetValue(partyInfo);
+
+                                if (fi.FieldType.IsValueType)
+                                {
+                                    System.Diagnostics.Debug.WriteLine("    {0}: {1:X}", memberInfo.Name, value);
+                                }
+                                else if (fi.FieldType == typeof(string))
+                                {
+                                    System.Diagnostics.Debug.WriteLine("    {0}: {1}", memberInfo.Name, value);
+                                }
+                                else
+                                {
+                                    var isEnumerable = typeof(IEnumerable).IsAssignableFrom(fi.FieldType);
+                                    System.Diagnostics.Debug.WriteLine("    {0}: {1}", memberInfo.Name, isEnumerable ? "..." : "{ }");
+                                }
+                            }
+                    }
+
+                    foreach (var memberData in partyInfo.MemberDatas)
+                    {
+                        System.Diagnostics.Debug.WriteLine("    MemberData Start");
+                        members = memberData.GetType().GetMembers(BindingFlags.Public | BindingFlags.Instance);
+                        foreach (MemberInfo memberInfo in members)
+                        {
+                            if (memberInfo.MemberType == MemberTypes.Field)
+                            {
+                                FieldInfo fi = (FieldInfo)memberInfo;
+
+                                object value = fi.GetValue(memberData);
+
+                                if (fi.FieldType.IsValueType)
+                                {
+                                    System.Diagnostics.Debug.WriteLine("        {0}: {1:X}", memberInfo.Name, value);
+                                }
+                                else if (fi.FieldType == typeof(string))
+                                {
+                                    System.Diagnostics.Debug.WriteLine("        {0}: {1}", memberInfo.Name, value);
+                                }
+                                else
+                                {
+                                    var isEnumerable = typeof(IEnumerable).IsAssignableFrom(fi.FieldType);
+                                    System.Diagnostics.Debug.WriteLine("        {0}: {1}", memberInfo.Name, isEnumerable ? "..." : "{ }");
+                                }
+                            }
+                        }
+                        System.Diagnostics.Debug.WriteLine("    MemberData End");
+                    }
                 }
                 else
                 {
