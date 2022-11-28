@@ -143,13 +143,14 @@ namespace LostArkLogger
             var rows = scope == Scope.Player ? encounter.GetAttackBuffStats((i => (float)(i.Damage)), SubEntity) : encounter.GetAttackBuffStats((i => (float)(i.Damage)));
             var elapsed = ((encounter.End == default(DateTime) ? DateTime.Now : encounter.End) - encounter.Start).TotalSeconds;
             var totalDamage = rows.Values.Sum(b => (Single)b.Item1);
-            orderedRows = rows.OrderByDescending(a => a.Value);
+            orderedRows = rows.ToDictionary(a => a.Key, a => Tuple.Create<UInt64, UInt32, UInt32, UInt64>(a.Value.Item1, a.Value.Item2, a.Value.Item3, a.Value.Item4)).OrderByDescending(a => a.Value.Item1);
+            var fullOrderedRows = rows.OrderByDescending(a => a.Value.Item1);
             for (var i = 0; i < orderedRows.Count(); i++)
             {
-                var rowData = orderedRows.ElementAt(i);
+                var rowData = fullOrderedRows.ElementAt(i);
                 int barWidth = (int)((rowData.Value.Item1 / totalDamage) * Size.Width);
                 var nameOffset = 0;
-                var infoString = $"{FormatNumber((ulong)(rowData.Value.Item1/elapsed))} {((rowData.Value.Item1) / totalDamage):P1} Att: {(1f * rowData.Value.Item3 / rowData.Value.Item2):P1} Debuff: {(1f * rowData.Value.Item4 / rowData.Value.Item2):P1}";
+                var infoString = $"{FormatNumber((ulong)(rowData.Value.Item1 / elapsed))} {((rowData.Value.Item1) / totalDamage):P1} Att: {(1f * rowData.Value.Item3 / rowData.Value.Item2):P1} {(1f * rowData.Value.Item5 / rowData.Value.Item1):P1} Debuff: {(1f * rowData.Value.Item4 / rowData.Value.Item2):P1} {(1f * rowData.Value.Item6 / rowData.Value.Item1):P1}";
                 e.Graphics.FillRectangle(brushes[i % brushes.Count], 0, (i + 1) * barHeight, barWidth, barHeight);
                 if (rowData.Key.Contains('(') && scope == Scope.TopLevel)
                 {

@@ -13,7 +13,6 @@ namespace LostArkLogger
         public ConcurrentBag<LogInfo> RaidInfos = new ConcurrentBag<LogInfo>();
         public ConcurrentDictionary<UInt64, Entity> Entities = new ConcurrentDictionary<UInt64, Entity>();
         public ConcurrentBag<LogInfo> Infos = new ConcurrentBag<LogInfo>();
-        public ConcurrentDictionary<UInt64, Entity> PartyEntities = new ConcurrentDictionary<UInt64, Entity>();
         public bool AfterWipe = false;
         public String EncounterName
         {
@@ -65,6 +64,15 @@ namespace LostArkLogger
             }
         }
 
+        // Tuple<damage value, attackbuff active, number of crits, support debuff active>
+        public Dictionary<String, Tuple<UInt64, UInt32, UInt32, UInt64>> GetHits(Entity entity, uint skillId)
+        {
+            var baseSearch = Infos.Where(i => i.SourceEntity.Type == Entity.EntityType.Player && i.Duration == TimeSpan.Zero);
+            IEnumerable<LogInfo> grouped = baseSearch.Where(i => i.SkillId == skillId && (i.SourceEntity.EntityId == entity.EntityId || i.SourceEntity.VisibleName == entity.VisibleName));
+            int c = 0;
+            return grouped.Select(i => new KeyValuePair<String, Tuple<UInt64, UInt32, UInt32, UInt64>>($"{i.Time.Ticks} - {c++}: {i.SkillName}", Tuple.Create(i.Damage, i.AttackBuff ? 1u : 0u, i.Crit ? 1u : 0u, i.DamageDebuff ? 1ul : 0ul))).ToDictionary(x => x.Key, x => x.Value);
+        }
+
         // Tuple<damage value, number of hits, number of crits, time alive>
         public Dictionary<String, Tuple<UInt64, UInt32, UInt32, UInt64>> GetDamages(Func<LogInfo, float> sum, Entity entity = default(Entity))
         {
@@ -103,16 +111,17 @@ namespace LostArkLogger
         }
 
         // Tuple<damage value, number of hits, number of hits with intense tune/attack inrease, number hits with sound shock>
-        public Dictionary<String, Tuple<UInt64, UInt32, UInt32, UInt64>> GetAttackBuffStats(Func<LogInfo, float> sum, Entity entity = default(Entity))
+        public Dictionary<String, Tuple<UInt64, UInt32, UInt32, UInt64, UInt64, UInt64>> GetAttackBuffStats(Func<LogInfo, float> sum, Entity entity = default(Entity))
         {
-            var baseSearch = Infos.Where(i => i.SourceEntity.Type == Entity.EntityType.Player && i.Duration == TimeSpan.Zero);
+            var baseSearch = Infos.Where(i => i.SourceEntity.Type == Entity.EntityType.Player && i.Duration == TimeSpan.Zero && i.Damage > 0 && i.SkillId != 0);
             IEnumerable<IGrouping<String, LogInfo>> grouped;
             if (entity != default(Entity))
                 grouped = baseSearch.Where(i => i.SourceEntity.EntityId == entity.EntityId || i.SourceEntity.VisibleName == entity.VisibleName).GroupBy(i => $"({i.SkillId},{i.SkillEffectId}) {i.SkillName}");
             else
                 grouped = baseSearch.GroupBy(i => i.SourceEntity.VisibleName);
-            return grouped.Select(i => new KeyValuePair<String, Tuple<UInt64, UInt32, UInt32, UInt64>>(i.Key, Tuple.Create((UInt64)i.Sum(sum), (UInt32)i.Count(), (UInt32)i.Count(log => log.AttackBuff), (UInt64)i.Count(log => log.DamageDebuff)))).ToDictionary(x => x.Key, x => x.Value);
+            return grouped.Select(i => new KeyValuePair<String, Tuple<UInt64, UInt32, UInt32, UInt64, UInt64, UInt64>>(i.Key, Tuple.Create((UInt64)i.Sum(sum), (UInt32)i.Count(), (UInt32)i.Count(log => log.AttackBuff), (UInt64)i.Count(log => log.DamageDebuff), (UInt64)i.Sum(log => (float)(log.AttackBuff ? log.Damage : 0)), (UInt64)i.Sum(log => (float)(log.DamageDebuff ? log.Damage : 0))))).ToDictionary(x => x.Key, x => x.Value);
             //return grouped.Select(i => new KeyValuePair<String, UInt64>(i.Key, (UInt64)i.Sum(j => (Single)j.Damage))).ToDictionary(x => x.Key, x => x.Value);
         }
+
     }
 }
