@@ -149,29 +149,60 @@ namespace InetOptimizer
 
         protected void OnPaintBuffedAttacks(PaintEventArgs e, float heightBuffer)
         {
-            var rows = scope == Scope.Player ? encounter.GetAttackBuffStats((i => (float)(i.Damage)), SubEntity) : encounter.GetAttackBuffStats((i => (float)(i.Damage)));
-            var elapsed = ((encounter.End == default(DateTime) ? DateTime.Now : encounter.End) - encounter.Start).TotalSeconds;
-            var totalDamage = rows.Values.Sum(b => (Single)b.Item1);
-            orderedRows = rows.OrderByDescending(a => a.Value);
-            for (var i = 0; i < orderedRows.Count(); i++)
+            if (scope == Scope.Skill)
             {
-                var rowData = orderedRows.ElementAt(i);
-                int barWidth = (int)((rowData.Value.Item1 / totalDamage) * Size.Width);
-                var nameOffset = 0;
-                var infoString = $"{FormatNumber((ulong)(rowData.Value.Item1/elapsed))} {((rowData.Value.Item1) / totalDamage):P1} Att: {(1f * rowData.Value.Item3 / rowData.Value.Item2):P1} Debuff: {(1f * rowData.Value.Item4 / rowData.Value.Item2):P1}";
-                e.Graphics.FillRectangle(brushes[i % brushes.Count], 0, (i + 1) * barHeight, barWidth, barHeight);
-                if (rowData.Key.Contains('(') && scope == Scope.TopLevel)
+                var rows = encounter.GetHits(SubEntity, skillId);
+                var elapsed = ((encounter.End == default(DateTime) ? DateTime.Now : encounter.End) - encounter.Start).TotalSeconds;
+                var totalDamage = rows.Values.Sum(b => (Single)b.Item1);
+                orderedRows = rows.OrderByDescending(a => a.Value.Item1);
+                for (var i = 0; i < orderedRows.Count(); i++)
                 {
-                    var className = rowData.Key.Substring(rowData.Key.IndexOf("(") + 1);
-                    className = className.Substring(0, className.IndexOf(")")).Split(' ')[1];
-                    //var className = rowData.Key[(rowData.Key.IndexOf("(") + 1)..];
-                    //className = className.Substring(0, className.IndexOf(")")).Split(' ')[1];
-                    e.Graphics.DrawImage(ClassSymbols, new Rectangle(2, (i + 1) * barHeight + 2, barHeight - 4, barHeight - 4), GetSpriteLocation(Array.IndexOf(ClassIconIndex, className)), GraphicsUnit.Pixel);
-                    nameOffset += 2 + barHeight - 4;
+                    var rowData = orderedRows.ElementAt(i);
+                    int barWidth = (int)((rowData.Value.Item1 / totalDamage) * Size.Width);
+                    var nameOffset = 0;
+                    var infoString = $"{FormatNumber(rowData.Value.Item1)} Attk: {rowData.Value.Item2} Debuff: {1f * rowData.Value.Item4}";
+                    e.Graphics.FillRectangle(brushes[i % brushes.Count], 0, (i + 1) * barHeight, barWidth, barHeight);
+                    if (rowData.Key.Contains('(') && scope == Scope.TopLevel)
+                    {
+                        var className = rowData.Key.Substring(rowData.Key.IndexOf("(") + 1);
+                        className = className.Substring(0, className.IndexOf(")")).Split(' ')[1];
+                        //var className = rowData.Key[(rowData.Key.IndexOf("(") + 1)..];
+                        //className = className.Substring(0, className.IndexOf(")")).Split(' ')[1];
+                        e.Graphics.DrawImage(ClassSymbols, new Rectangle(2, (i + 1) * barHeight + 2, barHeight - 4, barHeight - 4), GetSpriteLocation(Array.IndexOf(ClassIconIndex, className)), GraphicsUnit.Pixel);
+                        nameOffset += 2 + barHeight - 4;
+                    }
+                    var edge = e.Graphics.MeasureString(infoString, font);
+                    e.Graphics.DrawString(rowData.Key, font, black, nameOffset + 5, (i + 1) * barHeight + heightBuffer);
+                    e.Graphics.DrawString(infoString, font, black, Size.Width - edge.Width, (i + 1) * barHeight + heightBuffer);
                 }
-                var edge = e.Graphics.MeasureString(infoString, font);
-                e.Graphics.DrawString(rowData.Key, font, black, nameOffset + 5, (i + 1) * barHeight + heightBuffer);
-                e.Graphics.DrawString(infoString, font, black, Size.Width - edge.Width, (i + 1) * barHeight + heightBuffer);
+            }
+            else
+            {
+                var rows = scope == Scope.Player ? encounter.GetAttackBuffStats((i => (float)(i.Damage)), SubEntity) : encounter.GetAttackBuffStats((i => (float)(i.Damage)));
+                var elapsed = ((encounter.End == default(DateTime) ? DateTime.Now : encounter.End) - encounter.Start).TotalSeconds;
+                var totalDamage = rows.Values.Sum(b => (Single)b.Item1);
+                orderedRows = rows.ToDictionary(a => a.Key, a => Tuple.Create<UInt64, UInt32, UInt32, UInt64>(a.Value.Item1, a.Value.Item2, a.Value.Item3, a.Value.Item4)).OrderByDescending(a => a.Value.Item1);
+                var fullOrderedRows = rows.OrderByDescending(a => a.Value.Item1);
+                for (var i = 0; i < orderedRows.Count(); i++)
+                {
+                    var rowData = fullOrderedRows.ElementAt(i);
+                    int barWidth = (int)((rowData.Value.Item1 / totalDamage) * Size.Width);
+                    var nameOffset = 0;
+                    var infoString = $"{FormatNumber((ulong)(rowData.Value.Item1 / elapsed))} {((rowData.Value.Item1) / totalDamage):P1} Att: {(1f * rowData.Value.Item3 / rowData.Value.Item2):P1} {(1f * rowData.Value.Item5 / rowData.Value.Item1):P1} Debuff: {(1f * rowData.Value.Item4 / rowData.Value.Item2):P1} {(1f * rowData.Value.Item6 / rowData.Value.Item1):P1}";
+                    e.Graphics.FillRectangle(brushes[i % brushes.Count], 0, (i + 1) * barHeight, barWidth, barHeight);
+                    if (rowData.Key.Contains('(') && scope == Scope.TopLevel)
+                    {
+                        var className = rowData.Key.Substring(rowData.Key.IndexOf("(") + 1);
+                        className = className.Substring(0, className.IndexOf(")")).Split(' ')[1];
+                        //var className = rowData.Key[(rowData.Key.IndexOf("(") + 1)..];
+                        //className = className.Substring(0, className.IndexOf(")")).Split(' ')[1];
+                        e.Graphics.DrawImage(ClassSymbols, new Rectangle(2, (i + 1) * barHeight + 2, barHeight - 4, barHeight - 4), GetSpriteLocation(Array.IndexOf(ClassIconIndex, className)), GraphicsUnit.Pixel);
+                        nameOffset += 2 + barHeight - 4;
+                    }
+                    var edge = e.Graphics.MeasureString(infoString, font);
+                    e.Graphics.DrawString(rowData.Key, font, black, nameOffset + 5, (i + 1) * barHeight + heightBuffer);
+                    e.Graphics.DrawString(infoString, font, black, Size.Width - edge.Width, (i + 1) * barHeight + heightBuffer);
+                }
             }
         }
 
@@ -359,7 +390,7 @@ namespace InetOptimizer
                         notCurrentEncounter = (index > 0);
                         SwitchOverlay(Scope.TopLevel);
                     }
-                    else if (scope == Scope.Player && level == Level.Damage)
+                    else if (scope == Scope.Player && (level == Level.Damage || level == Level.BuffedAttacks))
                     {
                         string elementKey = orderedRows.ElementAt(index).Key;
                         string skillid;

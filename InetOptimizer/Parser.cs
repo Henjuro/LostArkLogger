@@ -8,6 +8,8 @@ using System.Linq;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using System.Collections;
+using System.Reflection;
 
 namespace InetOptimizer
 {
@@ -30,7 +32,8 @@ namespace InetOptimizer
         Byte[] fragmentedPacket = new Byte[0];
         private string _localPlayerName = "You";
         private uint _localGearLevel = 0;
-        private ulong ownId = 0;
+        private ulong _localEntityId = 0;
+        private ulong _localCharacterId;
         public bool WasWipe = false;
         public bool WasKill = false;
         public bool DisplayNames = true;
@@ -142,6 +145,13 @@ namespace InetOptimizer
             var destinationName = targetEntity != null ? targetEntity.VisibleName : dmgEvent.TargetId.ToString("X");
             //var log = new LogInfo { Time = DateTime.Now, Source = sourceName, PC = sourceName.Contains("("), Destination = destinationName, SkillName = skillName, Crit = (dmgEvent.FlagsMaybe & 0x81) > 0, BackAttack = (dmgEvent.FlagsMaybe & 0x10) > 0, FrontAttack = (dmgEvent.FlagsMaybe & 0x20) > 0 };
             // 211601 heavenly tune
+            bool isInParty = PartyTracker.Instance.IsCharacterIdInParty(sourceEntity.PartyId);
+            bool attackbuffActive = false;
+            bool supportDebuffActive = false;
+            if (isInParty) {
+                attackbuffActive = sourceEntity.EntityId == _localEntityId ? statusEffectTracker.EntityHasAnyStatusEffect(sourceEntity.EntityId, 211606, 211749, 361708, 360506) : statusEffectTracker.PartyMemberHasAnyStatusEffect(sourceEntity.PartyId, 211606, 211749, 361708, 360506);
+                supportDebuffActive = PartyTracker.Instance.IsCharacterIdInParty(sourceEntity.PartyId) && statusEffectTracker.EntityHasAnyStatusEffectFromParty(targetEntity.EntityId, PartyTracker.Instance.GetPartyIdFromCharacterId(sourceEntity.PartyId), 210230, 360506);
+            }
             var log = new LogInfo
             {
                 Time = DateTime.Now,
@@ -154,8 +164,8 @@ namespace InetOptimizer
                 Crit = hitFlag == HitFlag.HIT_FLAG_CRITICAL || hitFlag == HitFlag.HIT_FLAG_DOT_CRITICAL,
                 BackAttack = hitOption == HitOption.HIT_OPTION_BACK_ATTACK,
                 FrontAttack = hitOption == HitOption.HIT_OPTION_FRONTAL_ATTACK,
-                AttackBuff = statusEffectTracker.HasAnyStatusEffect(sourceEntity.EntityId == ownId ? sourceEntity.EntityId : sourceEntity.PartyId, 211606, 211749, 361708, 360506),
-                DamageDebuff = statusEffectTracker.HasAnyStatusEffect(targetEntity.EntityId, 210230, 360506)
+                AttackBuff = attackbuffActive,
+                DamageDebuff = supportDebuffActive
             };
             onCombatEvent?.Invoke(log);
             currentEncounter.RaidInfos.Add(log);
@@ -333,20 +343,30 @@ namespace InetOptimizer
                 {
                     var env = new PKTInitEnv(new BitReader(payload));
                     beforeNewZone?.Invoke();
-                    if (currentEncounter.Infos.Count <= 50) Encounters.Remove(currentEncounter);
-                    else currentEncounter.End = DateTime.Now;
+                    if (currentEncounter.Infos.Count <= 50)
+                    {
+                        var oldenc = currentEncounter;
+                        currentEncounter = new Encounter();
+                        currentEncounter.Entities = oldenc.Entities;
+                        Encounters.Remove(oldenc);
+                    }
+                    else
+                    {
+                        currentEncounter.End = DateTime.Now;
+                        currentEncounter = new Encounter();
+                    }
 
-                    currentEncounter = new Encounter();
                     Encounters.Add(currentEncounter);
-                    ownId = env.PlayerId;
+                    _localEntityId = env.PlayerId;
                     var temp = new Entity
                     {
                         EntityId = env.PlayerId,
                         Name = _localPlayerName,
                         Type = Entity.EntityType.Player,
-                        GearLevel = _localGearLevel
+                        GearLevel = _localGearLevel,
+                        PartyId = _localCharacterId
                     };
-                    currentEncounter.Entities.AddOrUpdate(temp);
+                    currentEncounter.Entities.TryAdd(env.PlayerId, temp);
 
                     onNewZone?.Invoke();
                     Logger.AppendLog(1, env.PlayerId.ToString("X"));
@@ -429,10 +449,13 @@ namespace InetOptimizer
                     Encounters.Add(currentEncounter);
                     _localPlayerName = DisplayNames ? pc.Name : Npc.GetPcClass(pc.ClassId);
                     _localGearLevel = pc.GearLevel;
+                    _localEntityId = pc.PlayerId;
+                    _localCharacterId = pc.CharacterId;
                     var tempEntity = new Entity
                     {
 
                         EntityId = pc.PlayerId,
+                        PartyId = pc.CharacterId,
                         Name = _localPlayerName,
                         ClassName = Npc.GetPcClass(pc.ClassId),
                         Type = Entity.EntityType.Player,
@@ -444,6 +467,7 @@ namespace InetOptimizer
                     var maxHp = pc.statPair.Value[pc.statPair.StatType.IndexOf((byte)StatType.STAT_TYPE_MAX_HP)].ToString();
 
                     Logger.AppendLog(3, pc.PlayerId.ToString("X"), pc.Name, pc.ClassId.ToString(), Npc.GetPcClass(pc.ClassId), pc.Level.ToString(), tempEntity.GearScore, currentHp, maxHp);
+                    PCIdMapper.Instance.AddCharacterIdAndEntityIdMapping(pc.CharacterId, pc.PlayerId);
                     statusEffectTracker.InitPc(pc);
                     onNewZone?.Invoke();
                 }
@@ -466,13 +490,14 @@ namespace InetOptimizer
                         temp.dead = currentEncounter.Entities.GetOrAdd(temp.EntityId).dead;
                     }
                     currentEncounter.Entities.AddOrUpdate(temp);
-                    currentEncounter.PartyEntities[temp.PartyId] = temp;
                     
                     var currentHp = pc.statPair.StatType.IndexOf((byte)StatType.STAT_TYPE_HP) >= 0 ? pc.statPair.Value[pc.statPair.StatType.IndexOf((byte)StatType.STAT_TYPE_HP)].ToString() : "0";
                     var maxHp = pc.statPair.StatType.IndexOf((byte)StatType.STAT_TYPE_MAX_HP) >= 0 ? pc.statPair.Value[pc.statPair.StatType.IndexOf((byte)StatType.STAT_TYPE_MAX_HP)].ToString() : "0";
 
                     Logger.AppendLog(3, pc.PlayerId.ToString("X"), temp.Name, pc.ClassId.ToString(), Npc.GetPcClass(pc.ClassId), pc.Level.ToString(), temp.GearScore, currentHp, maxHp);
+                    PCIdMapper.Instance.AddCharacterIdAndEntityIdMapping(pc.PartyId, pc.PlayerId);
                     statusEffectTracker.NewPc(pcPacket);
+                    PartyTracker.Instance.ProcessPKTNewPC(pcPacket);
                 }
                 else if (opcode == OpCodes.PKTNewNpc)
                 {
@@ -648,7 +673,12 @@ namespace InetOptimizer
                         OwnerId = npc.OwnerId,
                         Type = Entity.EntityType.Summon
                     });
-                } 
+                }
+                else if (opcode == OpCodes.PKTPartyInfo)
+                {
+                    var partyInfo = new PKTPartyInfo(new BitReader(payload));
+                    PartyTracker.Instance.ProcessPartyPKT(partyInfo);
+                }
                 else
                 {
                     
@@ -710,6 +740,7 @@ namespace InetOptimizer
                 }
             }
         }
+
         void Device_OnPacketArrival_pcap(object sender, PacketCapture evt)
         {
             if (pcap == null) return;
@@ -755,7 +786,7 @@ namespace InetOptimizer
         {
             Entity dstEntity;
             if (statusEffect.Type == StatusEffect.StatusEffectType.Party)
-                dstEntity = currentEncounter.PartyEntities.GetOrAdd(statusEffect.TargetId);
+                dstEntity = currentEncounter.Entities.GetOrAdd(PCIdMapper.Instance.GetEntityIdFormCharacterId(statusEffect.TargetId));
             else
                 dstEntity = currentEncounter.Entities.GetOrAdd(statusEffect.TargetId);
             var log = new LogInfo
@@ -824,7 +855,6 @@ namespace InetOptimizer
                 var oldEnc = currentEncounter;
                 var newEnc = new Encounter();
                 newEnc.Entities = oldEnc.Entities;
-                newEnc.PartyEntities = oldEnc.PartyEntities;
                 Encounters.Add(newEnc);
                 currentEncounter = newEnc;
                 oldEnc.End = DateTime.UtcNow;
