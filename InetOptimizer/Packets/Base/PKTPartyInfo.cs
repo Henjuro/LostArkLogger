@@ -10,7 +10,7 @@ namespace InetOptimizer
         }
         public byte b_0;
         public UInt32 PartyInstanceId;
-        public UInt32 u32_1;
+        public UInt32 RaidInstanceId;
         public UInt32 u32_2;
         public List<PartyMemberData> MemberDatas;
         public Byte b_1;

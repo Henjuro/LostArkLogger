@@ -27,5 +27,7 @@ namespace InetOptimizer
         PKTTriggerBossBattleStatus = 0xE5F7,
         PKTTriggerStartNotify = 0x7807,
         PKTPartyInfo = 4508,
+        PKTPartyLeaveResult = 20450,
+        PKTPartyUnknown = 55319,
     }
 }

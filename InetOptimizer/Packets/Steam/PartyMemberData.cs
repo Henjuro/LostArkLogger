@@ -6,7 +6,7 @@ namespace InetOptimizer
     {
         public void SteamDecode(BitReader reader)
         {
-            u16_0 = reader.ReadUInt16();
+            RosterLevel = reader.ReadUInt16();
             PartyMemberNumber = reader.ReadByte();
             b_1 = reader.ReadByte();
             CurHP = reader.ReadPackedInt();
@@ -17,7 +17,7 @@ namespace InetOptimizer
             b_3 = reader.ReadByte();
             CharacterId = reader.ReadUInt64();
             b_4 = reader.ReadByte();
-            u16_1 = reader.ReadUInt16();
+            CharacterLevel = reader.ReadUInt16();
             MaxHP = reader.ReadPackedInt();
             u16_3 = reader.ReadUInt16();
             b_5 = reader.ReadByte();

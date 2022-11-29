@@ -1,18 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
 namespace InetOptimizer
 {
-    public partial class PKTPartyInfo
+    public partial class PKTPartyLeaveResult
     {
         public void SteamDecode(BitReader reader)
         {
             b_0 = reader.ReadByte();
             PartyInstanceId = reader.ReadUInt32();
-            RaidInstanceId = reader.ReadUInt32();
-            u32_2 = reader.ReadUInt32();
-            MemberDatas = reader.ReadList<PartyMemberData>();
-            b_1 = reader.ReadByte();
-
+            Name = reader.ReadString();
         }
     }
 }
