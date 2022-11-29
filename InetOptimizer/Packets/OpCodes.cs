@@ -1447,5 +1447,6 @@ namespace InetOptimizer
         PKTAdvRewardRequestResult = 59918,
         PKTFallDownPredictNotify = 59982,
         PKTInitAchievementActive = 59992,
+        PKTPartyUnknown = 32451,
     }
 }
