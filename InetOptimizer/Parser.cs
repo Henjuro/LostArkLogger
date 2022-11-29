@@ -301,11 +301,23 @@ namespace InetOptimizer
                     }
                 }
                 */
-
-                if (Search(payload, new byte[] { 0x14, 0x8B, 0xEB }) >= 0)
+                //A67B63A
+                if (Search(payload, new byte[] { 0x3C, 0xB6, 0x67 }) >= 0)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Opcode: {Enum.GetName(typeof(OpCodes), opcode)} found with 0x148BEB");
-                    Logger.AppendLog(88484, ((int)opcode).ToString(), BitConverter.ToString(payload).Replace("-", ""));
+                    System.Diagnostics.Debug.WriteLine($"Opcode: {Enum.GetName(typeof(OpCodes), opcode)} found with *");
+                    //Logger.AppendLog(88484, ((int)opcode).ToString(), BitConverter.ToString(payload).Replace("-", ""));
+                }
+                if ((int)opcode == 0xd817)
+                {
+                    var p = new PKTPartyUnknown(new BitReader(payload));
+                    PartyTracker.Instance.ProcessPKTPartyUnknown(p);
+                    System.Diagnostics.Debug.WriteLine($"Opcode: {Enum.GetName(typeof(OpCodes), opcode)} found with *");
+                }
+                if (opcode == OpCodes.PKTPartyLeaveResult)
+                {
+                    var ppl = new PKTPartyLeaveResult(new BitReader(payload));
+                    PartyTracker.Instance.ProcessPKTPartyLeaveResult(ppl);
+                    System.Diagnostics.Debug.WriteLine($"Opcode: {Enum.GetName(typeof(OpCodes), opcode)} found with *");
                 }
                 if (opcode == OpCodes.PKTTriggerStartNotify)
                 {
@@ -324,7 +336,7 @@ namespace InetOptimizer
                         }
                     }
                 }
-                if (opcode == OpCodes.PKTNewProjectile)
+                else if (opcode == OpCodes.PKTNewProjectile)
                 {
                     var projectile = new PKTNewProjectile(new BitReader(payload)).projectileInfo;
                     currentEncounter.Entities.AddOrUpdate(new Entity
