@@ -81,15 +81,18 @@ namespace InetOptimizer
 
             if (pkt.Name.Equals(ownCharacterName))
             {
-                PartyInfo pi = PartyInformations[pkt.PartyInstanceId];
-                List<PartyInfo> parties = new List<PartyInfo>();
-                foreach (var p in PartyInformations)
+                if (PartyInformations.ContainsKey(pkt.PartyInstanceId))
                 {
-                    if (p.Value.RaidId == pi.RaidId)
-                        parties.Add(p.Value);
+                    PartyInfo pi = PartyInformations[pkt.PartyInstanceId];
+                    List<PartyInfo> parties = new List<PartyInfo>();
+                    foreach (var p in PartyInformations)
+                    {
+                        if (p.Value.RaidId == pi.RaidId)
+                            parties.Add(p.Value);
+                    }
+                    foreach (var p in parties)
+                        RemovePartyMappings(p.PartyId);
                 }
-                foreach (var p in parties)
-                    RemovePartyMappings(p.PartyId);
             }
         }
 
