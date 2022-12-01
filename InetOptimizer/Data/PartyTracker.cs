@@ -31,7 +31,7 @@ namespace InetOptimizer
             if (pkt.MemberDatas.Count <= 1)
                 return;
 
-            foreach (var x in pkt.MemberDatas)
+            foreach (var x in pkt.MemberDatas.Data)
             {
 
                 CharacterIdToPartyId[x.CharacterId] = pkt.PartyInstanceId;
@@ -51,14 +51,11 @@ namespace InetOptimizer
 
         public void ProcessPKTInitPC(PKTInitPC pkt)
         {
-            return;
-            /*
-            EntityIdToCharacterId[pkt.PlayerId] = pkt.CharacterId;
-            CharacterIdToEntityId[pkt.CharacterId] = pkt.PlayerId;
-            ownCharacterName = pkt.Name;
-            if (CharacterIdToPartyId.ContainsKey(pkt.CharacterId))
-                EntityIdToPartyId[pkt.PlayerId] = CharacterIdToPartyId[pkt.CharacterId];
-            */
+            EntityIdToCharacterId[pkt.PlayerId] = (ulong)pkt.Unk56;
+            CharacterIdToEntityId[(ulong)pkt.Unk56] = pkt.PlayerId;
+            ownCharacterName = pkt.Name.Value;
+            if (CharacterIdToPartyId.ContainsKey((ulong)pkt.Unk56))
+                EntityIdToPartyId[pkt.PlayerId] = CharacterIdToPartyId[(ulong)pkt.Unk56];
         }
         public void ProcessPKTInitEnv(PKTInitEnv pkt, UInt64 localCharacterId)
         {
@@ -70,7 +67,7 @@ namespace InetOptimizer
                 EntityIdToPartyId[pkt.PlayerId] = CharacterIdToPartyId[localCharacterId];
         }
 
-        public void ProcessPKTPartyUnknown(PKTPartyUnknown pkt)
+        public void ProcessPKTPartyUnknown(PKTPartyStatusEffectResultNotify pkt)
         {
             CharacterIdToPartyId[pkt.CharacterId] = pkt.PartyInstanceId;
             if (CharacterIdToEntityId.ContainsKey(pkt.CharacterId))

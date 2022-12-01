@@ -325,7 +325,7 @@ namespace InetOptimizer
                 }
                 if ((int)opcode == 0xd817)
                 {
-                    var p = new PKTPartyUnknown(new BitReader(payload));
+                    var p = new PKTPartyStatusEffectResultNotify(new BitReader(payload));
                     PartyTracker.Instance.ProcessPKTPartyUnknown(p);
                     System.Diagnostics.Debug.WriteLine($"Opcode: {Enum.GetName(typeof(OpCodes), opcode)} found with *");
                 }
@@ -764,7 +764,7 @@ namespace InetOptimizer
                             }
                     }
 
-                    foreach (var memberData in partyInfo.MemberDatas)
+                    foreach (var memberData in partyInfo.MemberDatas.Data)
                     {
                         System.Diagnostics.Debug.WriteLine("    MemberData Start");
                         members = memberData.GetType().GetMembers(BindingFlags.Public | BindingFlags.Instance);

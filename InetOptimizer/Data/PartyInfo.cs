@@ -16,13 +16,13 @@ namespace InetOptimizer
             Members = new();
             PartyId = pkt.PartyInstanceId;
             RaidId = pkt.RaidInstanceId;
-            foreach(var member in pkt.MemberDatas)
+            foreach(var member in pkt.MemberDatas.Data)
             {
                 Members.Add(member.CharacterId, new PartyMemberInfo(member));
             }
         }
 
-        public PartyInfo(PKTPartyUnknown pkt)
+        public PartyInfo(PKTPartyStatusEffectResultNotify pkt)
         {
             Members = new();
             PartyId = pkt.PartyInstanceId;

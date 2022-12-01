@@ -16,9 +16,9 @@ namespace InetOptimizer
         public PartyMemberInfo(PartyMemberData pmd)
         {
             CharacterId = pmd.CharacterId;
-            MaxHP = pmd.MaxHP;
+            MaxHP = pmd.MaxHP.Value;
             PartyMemberNumber = pmd.PartyMemberNumber;
-            Name = pmd.Name;
+            Name = pmd.Name.Value;
         }
     }
 }
