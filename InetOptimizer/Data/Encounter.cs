@@ -12,6 +12,7 @@ namespace InetOptimizer
         public DateTime End;
         public ConcurrentBag<LogInfo> RaidInfos = new ConcurrentBag<LogInfo>();
         public ConcurrentDictionary<UInt64, Entity> Entities = new ConcurrentDictionary<UInt64, Entity>();
+        public ConcurrentDictionary<UInt64, bool> LoggedEntities = new ConcurrentDictionary<UInt64, bool>();
         public ConcurrentBag<LogInfo> Infos = new ConcurrentBag<LogInfo>();
         public bool AfterWipe = false;
         // last update, percentage health left, max health,  current health

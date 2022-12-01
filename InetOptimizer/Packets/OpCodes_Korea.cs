@@ -26,5 +26,8 @@ namespace InetOptimizer
         PKTStatusEffectRemoveNotify = 0x1B2F,
         PKTTriggerBossBattleStatus = 0x91B0,
         PKTTriggerStartNotify = 0x17B0,
+        PKTPartyInfo = 4508,
+        PKTPartyLeaveResult = 20450,
+        PKTPartyUnknown = 55319,
     }
 }

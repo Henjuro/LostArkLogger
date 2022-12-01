@@ -43,19 +43,22 @@ namespace InetOptimizer
 
         public void ProcessPKTNewPC(PKTNewPC pkt)
         {
-            EntityIdToCharacterId[pkt.pCStruct.PlayerId] = pkt.pCStruct.PartyId;
-            CharacterIdToEntityId[pkt.pCStruct.PartyId] = pkt.pCStruct.PlayerId;
-            if (CharacterIdToPartyId.ContainsKey(pkt.pCStruct.PartyId))
-                EntityIdToPartyId[pkt.pCStruct.PlayerId] = CharacterIdToPartyId[pkt.pCStruct.PartyId];
+            EntityIdToCharacterId[pkt.PCStruct.PlayerId] = pkt.PCStruct.CharacterId;
+            CharacterIdToEntityId[pkt.PCStruct.CharacterId] = pkt.PCStruct.PlayerId;
+            if (CharacterIdToPartyId.ContainsKey(pkt.PCStruct.CharacterId))
+                EntityIdToPartyId[pkt.PCStruct.PlayerId] = CharacterIdToPartyId[pkt.PCStruct.CharacterId];
         }
 
         public void ProcessPKTInitPC(PKTInitPC pkt)
         {
+            return;
+            /*
             EntityIdToCharacterId[pkt.PlayerId] = pkt.CharacterId;
             CharacterIdToEntityId[pkt.CharacterId] = pkt.PlayerId;
             ownCharacterName = pkt.Name;
             if (CharacterIdToPartyId.ContainsKey(pkt.CharacterId))
                 EntityIdToPartyId[pkt.PlayerId] = CharacterIdToPartyId[pkt.CharacterId];
+            */
         }
         public void ProcessPKTInitEnv(PKTInitEnv pkt, UInt64 localCharacterId)
         {

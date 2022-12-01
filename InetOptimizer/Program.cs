@@ -1,17 +1,29 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Reflection.PortableExecutable;
+using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Windows.Forms;
 namespace InetOptimizer
 {
     internal static class Program
     {
-        public static bool IsConsole = Console.OpenStandardInput(1) != Stream.Null;
+        //public static bool IsConsole = OpenStandardInput(1) != Stream.Null;
+        // https://stackoverflow.com/questions/1188658/how-can-a-c-sharp-windows-console-application-tell-if-it-is-run-interactively
+        [DllImport("kernel32.dll")]
+        static extern IntPtr GetModuleHandleW(IntPtr lpModuleName);
+        static Subsystem GetSubsystem()
+        {
+            var p = GetModuleHandleW(default);          // PE image VM mapped base address
+            p += Marshal.ReadInt32(p, 0x3C);                // RVA of COFF/PE within DOS header
+            return (Subsystem)Marshal.ReadInt16(p + 0x5C);  // PE offset to 'Subsystem' value
+        }
+        public static bool IsConsole = GetSubsystem() == Subsystem.WindowsCui;
         [STAThread]
         static void Main(string[] args)
         {
@@ -55,11 +67,13 @@ namespace InetOptimizer
             (var region, var installedVersion) = VersionCheck.GetLostArkVersion();
             if (installedVersion == null)
             {
-                MessageBox.Show("Launch Lost Ark before launching logger", "Lost Ark Not Running", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-                Environment.Exit(0);
+                MessageBox.Show("Launch Lost Ark before launching logger if you want DPS meter to work.", "Lost Ark Not Running", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                Environment.Exit(10);
             }
             else if (region == Region.Unknown)
+            {
                 MessageBox.Show("DPS Meter is out of date.\nDPS Meter might not work until updated.\nCheck Discord/Github for more info.\nFeel free to add a message in the discord informing shalzuth that it's out of data", "Out of date!", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
             else if (Properties.Settings.Default.Region != region)
             {
                 Properties.Settings.Default.Region = region;

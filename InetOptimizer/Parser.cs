@@ -3,13 +3,15 @@ using InetOptimizer.Utilities;
 using SharpPcap;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using System.Collections;
+using IronSnappy;
+using System.Buffers.Text;
+using System.IO;
 using System.Reflection;
+using System.Collections;
 
 namespace InetOptimizer
 {
@@ -125,20 +127,34 @@ namespace InetOptimizer
 
         void ProcessDamageEvent(Entity sourceEntity, UInt32 skillId, UInt32 skillEffectId, SkillDamageEvent dmgEvent)
         {
-            if (dmgEvent.MaxHp > 3000000) {
-                int perc = (int)(dmgEvent.CurHp / ((double)dmgEvent.MaxHp) * 100);
+            if (dmgEvent.MaxHp.Value > 3000000) {
+                int perc = (int)(dmgEvent.CurHp.Value / ((double)dmgEvent.MaxHp.Value) * 100);
                 string name = currentEncounter.Entities.GetOrAdd(dmgEvent.TargetId).VisibleName;
                 if (perc <= 0)
                     currentEncounter.BigNPCHealthMap.Remove(name, out _);
                 else
                 {
-                    var data = new Tuple<DateTime, int, long, long>(DateTime.UtcNow, perc, dmgEvent.MaxHp, dmgEvent.CurHp);
+                    var data = new Tuple<DateTime, int, long, long>(DateTime.UtcNow, perc, dmgEvent.MaxHp.Value, dmgEvent.CurHp.Value);
                     currentEncounter.BigNPCHealthMap.AddOrUpdate(name, data, (k, v) => data);
                 }
             }
             var hitFlag = (HitFlag)(dmgEvent.Modifier & 0xf);
             if (hitFlag == HitFlag.HIT_FLAG_DAMAGE_SHARE && skillId == 0 && skillEffectId == 0)
                 return;
+
+            // damage dealer is a player
+            if (!String.IsNullOrEmpty(sourceEntity.ClassName) && sourceEntity.ClassName != "UnknownClass")
+            {
+                // player hasn't been announced on logs before. possibly because user opened logger after they got into a zone
+                if (!currentEncounter.LoggedEntities.ContainsKey(sourceEntity.EntityId))
+                {
+                    // classId is unknown, can be fixed
+                    // level, currenthp and maxhp is unknown
+                    Logger.AppendLog(3, sourceEntity.EntityId.ToString("X"), sourceEntity.Name, "0", sourceEntity.ClassName, "1", "0", "0");
+                    currentEncounter.LoggedEntities.TryAdd(sourceEntity.EntityId, true);
+                }
+            }
+
             var hitOption = (HitOption)(((dmgEvent.Modifier >> 4) & 0x7) - 1);
             var skillName = Skill.GetSkillName(skillId, skillEffectId);
             var targetEntity = currentEncounter.Entities.GetOrAdd(dmgEvent.TargetId);
@@ -165,7 +181,7 @@ namespace InetOptimizer
                 SkillId = skillId,
                 SkillEffectId = skillEffectId,
                 SkillName = skillName,
-                Damage = (ulong)dmgEvent.Damage,
+                Damage = (ulong)dmgEvent.Damage.Value,
                 Crit = hitFlag == HitFlag.HIT_FLAG_CRITICAL || hitFlag == HitFlag.HIT_FLAG_DOT_CRITICAL,
                 BackAttack = hitOption == HitOption.HIT_OPTION_BACK_ATTACK,
                 FrontAttack = hitOption == HitOption.HIT_OPTION_FRONTAL_ATTACK,
@@ -187,7 +203,7 @@ namespace InetOptimizer
             }
 
             if (String.IsNullOrEmpty(sourceEntity.Name)) sourceEntity.Name = damage.SourceId.ToString("X");
-            foreach (var dmgEvent in damage.skillDamageEvents)
+            foreach (var dmgEvent in damage.SkillDamageEvents.Events)
                 ProcessDamageEvent(sourceEntity, damage.SkillId, damage.SkillEffectId, dmgEvent);
         }
 
@@ -202,8 +218,8 @@ namespace InetOptimizer
             }
 
             if (String.IsNullOrEmpty(sourceEntity.Name)) sourceEntity.Name = damage.SourceId.ToString("X");
-            foreach (var dmgEvent in damage.skillDamageMoveEvents)
-                ProcessDamageEvent(sourceEntity, damage.SkillId, damage.SkillEffectId, dmgEvent.skillDamageEvent);
+            foreach (var dmgEvent in damage.SkillDamageAbnormalMoveEvents.Events)
+                ProcessDamageEvent(sourceEntity, damage.SkillId, damage.SkillEffectId, dmgEvent.DamageEvent);
         }
 
         protected OpCodes GetOpCode(Byte[] packets)
@@ -215,7 +231,7 @@ namespace InetOptimizer
             if (Properties.Settings.Default.Region == Region.Korea) opCodeString = ((OpCodes_Korea)opcodeVal).ToString();
             return (OpCodes)Enum.Parse(typeof(OpCodes), opCodeString);
         }
-        Byte[] XorTableSteam = ObjectSerialize.Decompress(Properties.Resources.xor_Steam);
+        Byte[] XorTableSteam = Convert.FromBase64String("DgZIHKcHjzVicTApEJcqhC+gJuv5g3PkLCf8Lal73VYgnLKAOs3naIrwmZMaXmPgxDZHSSJglln0HUXWdmaFF5gC3Au30+UZIQ+HuFJTfTu+d3r4EhhfKEKQ3mujoa3Hq2cuxQzjaiSdwzEr/goBtEDVOcAz8kOfWhYFzIFlnkG6T29GTO+JjdHpTjf6fPvxpZJYctu7vKhKRBvZOOyCynjOrG3hpO31royR/SPzoj3IcFGmvcuOA9h1BLZs9+KGHh/UvxX/te5+r88lCN/Jwohu9lez6kvBAGkNmuaxuT8T6FuVMlSbsFA+xmFdXNo8eQnSf3Rk1xSUqjRNEYtV0A==");
         //Byte[] XorTableRu = ObjectSerialize.Decompress(Properties.Resources.xor_ru);
         Byte[] XorTableKorea = ObjectSerialize.Decompress(Properties.Resources.xor_Korea);
         Byte[] XorTable { get { return Properties.Settings.Default.Region == Region.Steam ? XorTableSteam : XorTableKorea; } }
@@ -322,9 +338,9 @@ namespace InetOptimizer
                 if (opcode == OpCodes.PKTTriggerStartNotify)
                 {
                     var trigger = new PKTTriggerStartNotify(new BitReader(payload));
-                    if (trigger.Signal >= (int)TriggerSignalType.DUNGEON_PHASE1_CLEAR && trigger.Signal <= (int)TriggerSignalType.DUNGEON_PHASE4_FAIL) // if in range of dungeon fail/kill
+                    if (trigger.TriggerSignalType >= (int)TriggerSignalType.DUNGEON_PHASE1_CLEAR && trigger.TriggerSignalType <= (int)TriggerSignalType.DUNGEON_PHASE4_FAIL) // if in range of dungeon fail/kill
                     {
-                        if (((TriggerSignalType)trigger.Signal).ToString().Contains("FAIL")) // not as good performance, but more clear and in case enums change order in future
+                        if (((TriggerSignalType)trigger.TriggerSignalType).ToString().Contains("FAIL")) // not as good performance, but more clear and in case enums change order in future
                         {
                             WasWipe = true;
                             WasKill = false;
@@ -462,8 +478,11 @@ namespace InetOptimizer
                             Encounters.Remove(Encounters.Last());
                         }
                         Encounters.Add(currentEncounter);
-                        Logger.AppendLog(2);
-                        System.Diagnostics.Debug.WriteLine("RAID SPLIT");
+
+                        var phaseCode = "0"; // PKTRaidResult
+                        if (opcode == OpCodes.PKTRaidBossKillNotify) phaseCode = "1";
+                        else if (opcode == OpCodes.PKTTriggerBossBattleStatus) phaseCode = "2";
+                        Logger.AppendLog(2, phaseCode);
                     });
                 }
                 else if (opcode == OpCodes.PKTInitPC)
@@ -473,15 +492,15 @@ namespace InetOptimizer
                     if (currentEncounter.Infos.Count == 0) Encounters.Remove(currentEncounter);
                     currentEncounter = new Encounter();
                     Encounters.Add(currentEncounter);
-                    _localPlayerName = DisplayNames ? pc.Name : Npc.GetPcClass(pc.ClassId);
+                    _localPlayerName = DisplayNames ? pc.Name.Value : Npc.GetPcClass(pc.ClassId);
                     _localGearLevel = pc.GearLevel;
                     _localEntityId = pc.PlayerId;
-                    _localCharacterId = pc.CharacterId;
+                    _localCharacterId = (ulong)pc.Unk56;
                     var tempEntity = new Entity
                     {
 
                         EntityId = pc.PlayerId,
-                        PartyId = pc.CharacterId,
+                        PartyId = (ulong)pc.Unk56,
                         Name = _localPlayerName,
                         ClassName = Npc.GetPcClass(pc.ClassId),
                         Type = Entity.EntityType.Player,
@@ -489,25 +508,27 @@ namespace InetOptimizer
                     };
                     System.Diagnostics.Debug.WriteLine($"EntityId: {tempEntity.EntityId:X} Name: {tempEntity.Name} ClassName: {tempEntity.ClassName} Type: {tempEntity.Type}");
                     currentEncounter.Entities.AddOrUpdate(tempEntity);
-
-                    var currentHp = pc.statPair.Value[pc.statPair.StatType.IndexOf((byte)StatType.STAT_TYPE_HP)].ToString();
-                    var maxHp = pc.statPair.Value[pc.statPair.StatType.IndexOf((byte)StatType.STAT_TYPE_MAX_HP)].ToString();
-
-                    Logger.AppendLog(3, pc.PlayerId.ToString("X"), pc.Name, pc.ClassId.ToString(), Npc.GetPcClass(pc.ClassId), pc.Level.ToString(), tempEntity.GearScore, currentHp, maxHp);
-                    PCIdMapper.Instance.AddCharacterIdAndEntityIdMapping(pc.CharacterId, pc.PlayerId);
+                    //PCIdMapper.Instance.AddCharacterIdAndEntityIdMapping(pc.CharacterId, pc.PlayerId);
                     PartyTracker.Instance.ProcessPKTInitPC(pc);
                     statusEffectTracker.InitPc(pc);
                     onNewZone?.Invoke();
+
+                    if (!currentEncounter.LoggedEntities.ContainsKey(pc.PlayerId))
+                    {
+                        var gearScore = BitConverter.ToSingle(BitConverter.GetBytes(pc.GearLevel), 0).ToString("0.##");
+                        Logger.AppendLog(3, pc.PlayerId.ToString("X"), pc.Name.Value, pc.ClassId.ToString(), Npc.GetPcClass(pc.ClassId), pc.Level.ToString(), gearScore, pc.statPair.Value[pc.statPair.StatType.IndexOf((Byte)StatType.STAT_TYPE_HP)].ToString(), pc.statPair.Value[pc.statPair.StatType.IndexOf((Byte)StatType.STAT_TYPE_MAX_HP)].ToString());
+                        currentEncounter.LoggedEntities.TryAdd(pc.PlayerId, true);
+                    }
                 }
                 else if (opcode == OpCodes.PKTNewPC)
                 {
                     var pcPacket = new PKTNewPC(new BitReader(payload));
-                    var pc = pcPacket.pCStruct;
+                    var pc = pcPacket.PCStruct;
                     var temp = new Entity
                     {
                         EntityId = pc.PlayerId,
-                        PartyId = pc.PartyId,
-                        Name = DisplayNames ? pc.Name : Npc.GetPcClass(pc.ClassId),
+                        PartyId = pc.CharacterId,
+                        Name = DisplayNames ? pc.Name.Value : Npc.GetPcClass(pc.ClassId),
                         ClassName = Npc.GetPcClass(pc.ClassId),
                         Type = Entity.EntityType.Player,
                         GearLevel = pc.GearLevel,
@@ -519,37 +540,40 @@ namespace InetOptimizer
                         temp.dead = currentEncounter.Entities.GetOrAdd(temp.EntityId).dead;
                     }
                     currentEncounter.Entities.AddOrUpdate(temp);
-                    
                     var currentHp = pc.statPair.StatType.IndexOf((byte)StatType.STAT_TYPE_HP) >= 0 ? pc.statPair.Value[pc.statPair.StatType.IndexOf((byte)StatType.STAT_TYPE_HP)].ToString() : "0";
                     var maxHp = pc.statPair.StatType.IndexOf((byte)StatType.STAT_TYPE_MAX_HP) >= 0 ? pc.statPair.Value[pc.statPair.StatType.IndexOf((byte)StatType.STAT_TYPE_MAX_HP)].ToString() : "0";
-
-                    Logger.AppendLog(3, pc.PlayerId.ToString("X"), temp.Name, pc.ClassId.ToString(), Npc.GetPcClass(pc.ClassId), pc.Level.ToString(), temp.GearScore, currentHp, maxHp);
-                    PCIdMapper.Instance.AddCharacterIdAndEntityIdMapping(pc.PartyId, pc.PlayerId);
+                    PCIdMapper.Instance.AddCharacterIdAndEntityIdMapping(pc.CharacterId, pc.PlayerId);
                     statusEffectTracker.NewPc(pcPacket);
                     PartyTracker.Instance.ProcessPKTNewPC(pcPacket);
+                    if (!currentEncounter.LoggedEntities.ContainsKey(pc.PlayerId))
+                    {
+                        var gearScore = BitConverter.ToSingle(BitConverter.GetBytes(pc.GearLevel), 0).ToString("0.##");
+                        Logger.AppendLog(3, pc.PlayerId.ToString("X"), temp.Name, pc.ClassId.ToString(), Npc.GetPcClass(pc.ClassId), pc.Level.ToString(), gearScore, pc.statPair.Value[pc.statPair.StatType.IndexOf((Byte)StatType.STAT_TYPE_HP)].ToString(), pc.statPair.Value[pc.statPair.StatType.IndexOf((Byte)StatType.STAT_TYPE_MAX_HP)].ToString());
+                        currentEncounter.LoggedEntities.TryAdd(pc.PlayerId, true);
+                    }
                 }
                 else if (opcode == OpCodes.PKTNewNpc)
                 {
                     var npcPacket = new PKTNewNpc(new BitReader(payload));
-                    var npc = npcPacket.npcStruct;
+                    var npc = npcPacket.NpcStruct;
                     currentEncounter.Entities.AddOrUpdate(new Entity
                     {
-                        EntityId = npc.NpcId,
-                        Name = Npc.GetNpcName(npc.NpcType),
+                        EntityId = npc.ObjectId,
+                        Name = Npc.GetNpcName(npc.TypeId),
                         Type = Entity.EntityType.Npc
                     });
                     var hp_pos = npc.statPair.StatType.IndexOf((Byte)StatType.STAT_TYPE_HP);
                     var hp_max_pos = npc.statPair.StatType.IndexOf((Byte)StatType.STAT_TYPE_MAX_HP);
                     if (hp_pos >= 0 && hp_max_pos >= 0)
-                        Logger.AppendLog(4, npc.NpcId.ToString("X"), npc.NpcType.ToString(), Npc.GetNpcName(npc.NpcType), npc.statPair.Value[hp_pos].ToString(), npc.statPair.Value[hp_max_pos].ToString());
+                        Logger.AppendLog(4, npc.ObjectId.ToString("X"), npc.TypeId.ToString(), Npc.GetNpcName(npc.TypeId), npc.statPair.Value[hp_pos].ToString(), npc.statPair.Value[hp_max_pos].ToString());
                     statusEffectTracker.NewNpc(npcPacket);
 
-                    System.Diagnostics.Debug.WriteLine($"EntityId: {npc.NpcId:X} Name: {Npc.GetNpcName(npc.NpcType)} Type: {Entity.EntityType.Npc}");
+                    System.Diagnostics.Debug.WriteLine($"EntityId: {npc.ObjectId:X} Name: {Npc.GetNpcName(npc.TypeId)} Type: {Entity.EntityType.Npc}");
 
                 }
                 else if (opcode == OpCodes.PKTRemoveObject)
                 {
-                    var obj = new PKTRemoveObject(new BitReader(payload));
+                    //var obj = new PKTRemoveObject(new BitReader(payload));
                     //var projectile = new PKTRemoveObject { Bytes = converted };
                     //ProjectileOwner.Remove(projectile.ProjectileId, projectile.OwnerId);
                 }
@@ -557,6 +581,7 @@ namespace InetOptimizer
                 {
                     var death = new PKTDeathNotify(new BitReader(payload));
                     Logger.AppendLog(5, death.TargetId.ToString("X"), currentEncounter.Entities.GetOrAdd(death.TargetId).Name, death.SourceId.ToString("X"), currentEncounter.Entities.GetOrAdd(death.SourceId).Name);
+
                     DateTime DeathTime = DateTime.Now;
                     TimeSpan timeAlive = DeathTime.Subtract(currentEncounter.Start);
                     if (currentEncounter.Entities.GetOrAdd(death.TargetId).Type == Entity.EntityType.Player) // if death is from player, add death log for time alive tracking
@@ -616,11 +641,12 @@ namespace InetOptimizer
                         Time = DateTime.Now,
                         SourceEntity = entity,
                         DestinationEntity = entity,
-                        Heal = (UInt32)health.StatPairChangedList.Value[0]
+                        Heal = (UInt32)health.StatPairChangedList.Value[0].Value
                     };
                     onCombatEvent?.Invoke(log);
                     // might push this by 1??
                     Logger.AppendLog(9, entity.EntityId.ToString("X"), entity.Name, health.StatPairChangedList.Value[0].ToString(), health.StatPairChangedList.Value[0].ToString());// need to lookup cached max hp??
+
                 }
                 else if (opcode == OpCodes.PKTStatusEffectAddNotify) // shields included
                 {
@@ -641,7 +667,7 @@ namespace InetOptimizer
                         Logger.AppendLog(15, statusEffect.statusEffectData.SourceId.ToString("X"), currentEncounter.Entities.GetOrAdd(statusEffect.statusEffectData.SourceId).Name, statusEffect.statusEffectData.StatusEffectId.ToString(), BattleItem.GetBattleItemName(statusEffect.statusEffectData.StatusEffectId));
                     }
                     statusEffectTracker.Add(statusEffect);
-                    var amount = statusEffect.statusEffectData.hasValue == 1 ? BitConverter.ToUInt32(statusEffect.statusEffectData.Value, 0) : 0;
+                    var amount = statusEffect.statusEffectData.hasValue ? BitConverter.ToUInt32(statusEffect.statusEffectData.Value, 0) : 0;
                 }
                 else if (opcode == OpCodes.PKTPartyStatusEffectAddNotify)
                 {
@@ -701,7 +727,7 @@ namespace InetOptimizer
                     var npc = new PKTNewNpcSummon(new BitReader(payload));
                     currentEncounter.Entities.AddOrUpdate(new Entity
                     {
-                        EntityId = npc.npcStruct.NpcId,
+                        EntityId = npc.NpcData.TypeId,
                         OwnerId = npc.OwnerId,
                         Type = Entity.EntityType.Summon
                     });
@@ -904,6 +930,7 @@ namespace InetOptimizer
         private void StatusEffectTracker_OnStatusEffectStarted(StatusEffect statusEffect)
         {
             Logger.AppendLog(10, statusEffect.SourceId.ToString("X"), currentEncounter.Entities.GetOrAdd(statusEffect.SourceId).Name, statusEffect.StatusEffectId.ToString("X"), SkillBuff.GetSkillBuffName(statusEffect.StatusEffectId), statusEffect.TargetId.ToString("X"), currentEncounter.Entities.GetOrAdd(statusEffect.TargetId).Name, statusEffect.Value.ToString());
+
         }
 
         private void Parser_onNewZone()
@@ -961,8 +988,6 @@ namespace InetOptimizer
         }
 
         public void Dispose()
-        {
-
-        }
+        { }
     }
 }
