@@ -69,14 +69,14 @@ namespace InetOptimizer
             statPair = new StatPair(reader);
             Unk46 = reader.ReadByte();
             Unk47 = reader.ReadByte();
-            Unk48 = reader.ReadInt32();
+            GearLevel = reader.ReadUInt32();
             Unk49 = reader.ReadByte();
             Unk50 = reader.ReadByte();
             Unk51 = reader.ReadByte();
             Unk52 = reader.ReadByte();
-            GearLevel = reader.ReadUInt32();
+            Unk53 = reader.ReadInt16();
             Unk54 = reader.ReadInt32();
-            //Unk55 = reader.ReadByte();
+            Unk55 = reader.ReadInt16();
             Unk56 = reader.ReadInt64();
         }
 
@@ -129,12 +129,12 @@ namespace InetOptimizer
         public StatPair statPair { get; } = new StatPair();
         public byte Unk46 { get; }
         public byte Unk47 { get; }
-        public int Unk48 { get; }
+        public uint GearLevel { get; }
         public byte Unk49 { get; }
         public byte Unk50 { get; }
         public byte Unk51 { get; }
         public byte Unk52 { get; }
-        public uint GearLevel { get; }
+        public short Unk53 { get; }
         public int Unk54 { get; }
         public short Unk55 { get; }
         public long Unk56 { get; }
