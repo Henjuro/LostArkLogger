@@ -11,8 +11,6 @@ namespace InetOptimizer
         private static readonly PartyTracker instance = new();
         private Dictionary<UInt64, UInt32> CharacterIdToPartyId = new();
         private Dictionary<UInt64, UInt32> EntityIdToPartyId = new();
-        private Dictionary<UInt64, UInt64> EntityIdToCharacterId = new();
-        private Dictionary<UInt64, UInt64> CharacterIdToEntityId = new();
         private Dictionary<UInt32, PartyInfo> PartyInformations = new();
         private String ownCharacterName = "";
 
@@ -35,43 +33,35 @@ namespace InetOptimizer
             {
 
                 CharacterIdToPartyId[x.CharacterId] = pkt.PartyInstanceId;
-                if (CharacterIdToEntityId.ContainsKey(x.CharacterId))
-                    EntityIdToPartyId[CharacterIdToEntityId[x.CharacterId]] = pkt.PartyInstanceId;
+                if (PCIdMapper.Instance.TryGetEntityIdFormCharacterId(x.CharacterId, out var entId))
+                    EntityIdToPartyId[entId] = pkt.PartyInstanceId;
             }
             PartyInformations[pkt.PartyInstanceId] = new PartyInfo(pkt);
         }
 
         public void ProcessPKTNewPC(PKTNewPC pkt)
         {
-            EntityIdToCharacterId[pkt.PCStruct.PlayerId] = pkt.PCStruct.CharacterId;
-            CharacterIdToEntityId[pkt.PCStruct.CharacterId] = pkt.PCStruct.PlayerId;
             if (CharacterIdToPartyId.ContainsKey(pkt.PCStruct.CharacterId))
                 EntityIdToPartyId[pkt.PCStruct.PlayerId] = CharacterIdToPartyId[pkt.PCStruct.CharacterId];
         }
 
         public void ProcessPKTInitPC(PKTInitPC pkt)
         {
-            EntityIdToCharacterId[pkt.PlayerId] = (ulong)pkt.Unk56;
-            CharacterIdToEntityId[(ulong)pkt.Unk56] = pkt.PlayerId;
             ownCharacterName = pkt.Name.Value;
             if (CharacterIdToPartyId.ContainsKey((ulong)pkt.Unk56))
                 EntityIdToPartyId[pkt.PlayerId] = CharacterIdToPartyId[(ulong)pkt.Unk56];
         }
         public void ProcessPKTInitEnv(PKTInitEnv pkt, UInt64 localCharacterId)
         {
-            EntityIdToCharacterId.Clear();
-            CharacterIdToEntityId.Clear();
-            EntityIdToCharacterId[pkt.PlayerId] = localCharacterId;
-            CharacterIdToEntityId[localCharacterId] = pkt.PlayerId;
             if (CharacterIdToPartyId.ContainsKey(localCharacterId))
                 EntityIdToPartyId[pkt.PlayerId] = CharacterIdToPartyId[localCharacterId];
         }
 
-        public void ProcessPKTPartyUnknown(PKTPartyStatusEffectResultNotify pkt)
+        public void ProcessPKTPartyStatusEffectResultNotify(PKTPartyStatusEffectResultNotify pkt)
         {
             CharacterIdToPartyId[pkt.CharacterId] = pkt.PartyInstanceId;
-            if (CharacterIdToEntityId.ContainsKey(pkt.CharacterId))
-                EntityIdToPartyId[CharacterIdToEntityId[pkt.CharacterId]] = pkt.PartyInstanceId;
+            if (PCIdMapper.Instance.TryGetEntityIdFormCharacterId(pkt.CharacterId, out var entId))
+                EntityIdToPartyId[entId] = pkt.PartyInstanceId;
             if (!PartyInformations.ContainsKey(pkt.PartyInstanceId))
                 PartyInformations[pkt.PartyInstanceId] = new PartyInfo(pkt);
         }

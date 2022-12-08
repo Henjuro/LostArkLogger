@@ -68,19 +68,31 @@ namespace InetOptimizer
         private void ProcessStatusEffectData(StatusEffectData effectData, UInt64 targetId, UInt64 sourceId, Tuple<ConcurrentDictionary<UInt64, StatusEffect>, ConcurrentDictionary<UInt32, int>> effectList, StatusEffect.StatusEffectType effectType)
         {
             Entity sourceEntity = parser.GetSourceEntity(sourceId);
-            var amount = (effectData.hasValue  && effectData.Value != null && effectData.Value.Length == 4) ? BitConverter.ToInt32(effectData.Value, 0) : 0;
+            int amount = 0;
+            if(effectData.hasValue && effectData.Value != null)
+            {
+                switch(effectData.Value.Length) {
+                    case 4:
+                    case 16:
+                        amount = BitConverter.ToInt32(effectData.Value, 0);
+                        break;
+                    default:
+                        System.Diagnostics.Debug.WriteLine($"{effectData.StatusEffectId}:{SkillBuff.GetSkillBuffName(effectData.StatusEffectId)} has value length {effectData.Value.Length}");
+                        break;
+                }
+            }
             var statusEffect = new StatusEffect { Started = DateTime.UtcNow, StatusEffectId = effectData.StatusEffectId, InstanceId = effectData.EffectInstanceId, SourceId = sourceEntity.EntityId, TargetId = targetId, Type = effectType, Value = amount };
-            System.Diagnostics.Debug.WriteLine($"Processing Status Effect Data. InstanceId: {statusEffect.InstanceId:X} TargetId: {targetId:X} SourceId: {sourceEntity.EntityId:X} SourceVisibleName: {sourceEntity.VisibleName} EffectId: {statusEffect.StatusEffectId} StatusEffectName: {SkillBuff.GetSkillBuffName(statusEffect.StatusEffectId)} Type: {statusEffect.Type} Value: {statusEffect.Value}");
+            System.Diagnostics.Trace.WriteLine($"Processing Status Effect Data. InstanceId: {statusEffect.InstanceId:X} TargetId: {targetId:X} SourceId: {sourceEntity.EntityId:X} SourceVisibleName: {sourceEntity.VisibleName} EffectId: {statusEffect.StatusEffectId} StatusEffectName: {SkillBuff.GetSkillBuffName(statusEffect.StatusEffectId)} Type: {statusEffect.Type} Value: {statusEffect.Value}", "ProcessStatusEffectData");
             // end this buf now, it got refreshed
             if (RemoveStatusEffect(effectList, statusEffect.InstanceId, out var oldStatusEffect))
             {
-                System.Diagnostics.Debug.WriteLine($"Status Effect is getting replaced InstanceId: {oldStatusEffect.InstanceId:X}");
+                System.Diagnostics.Trace.WriteLine($"Status Effect is getting replaced InstanceId: {oldStatusEffect.InstanceId:X}", "ProcessStatusEffectData");
                 var duration = DateTime.UtcNow - oldStatusEffect.Started;
                 OnStatusEffectEnded?.Invoke(oldStatusEffect, duration);
             }
             if (effectList.Item1.TryAdd(statusEffect.InstanceId, statusEffect))
             {
-                System.Diagnostics.Debug.WriteLine($"Status Effect got Added InstanceId: {statusEffect.InstanceId:X}");
+                System.Diagnostics.Trace.WriteLine($"Status Effect got Added InstanceId: {statusEffect.InstanceId:X}", "ProcessStatusEffectData");
                 if (!effectList.Item2.ContainsKey(statusEffect.StatusEffectId))
                 {
                     effectList.Item2.TryAdd(statusEffect.StatusEffectId, 1);

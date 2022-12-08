@@ -48,7 +48,7 @@ namespace InetOptimizer
             onNewZone += Parser_onNewZone;
             statusEffectTracker = new StatusEffectTracker(this);
             statusEffectTracker.OnStatusEffectEnded += Parser_onStatusEffectEnded;
-            statusEffectTracker.OnStatusEffectStarted += StatusEffectTracker_OnStatusEffectStarted; ;
+            statusEffectTracker.OnStatusEffectStarted += StatusEffectTracker_OnStatusEffectStarted;
             InstallListener();
         }
 
@@ -165,7 +165,7 @@ namespace InetOptimizer
             bool attackbuffActive = false;
             bool supportDebuffActive = false;
             if (isInParty) {
-                attackbuffActive = sourceEntity.EntityId == _localEntityId ? statusEffectTracker.EntityHasAnyStatusEffect(sourceEntity.EntityId, 211606, 211749, 361708, 360506) : statusEffectTracker.PartyMemberHasAnyStatusEffect(sourceEntity.PartyId, 211606, 211749, 361708, 360506);
+                attackbuffActive = sourceEntity.EntityId == _localEntityId ? statusEffectTracker.EntityHasAnyStatusEffect(sourceEntity.EntityId, 211606, 211749, 361708, 362006) : statusEffectTracker.PartyMemberHasAnyStatusEffect(sourceEntity.PartyId, 211606, 211749, 361708, 360506);
                 supportDebuffActive = statusEffectTracker.EntityHasAnyStatusEffectFromParty(targetEntity.EntityId, PartyTracker.Instance.GetPartyIdFromCharacterId(sourceEntity.PartyId), 210230, 360506);
             }
             else
@@ -326,8 +326,7 @@ namespace InetOptimizer
                 if ((int)opcode == 0xd817)
                 {
                     var p = new PKTPartyStatusEffectResultNotify(new BitReader(payload));
-                    PartyTracker.Instance.ProcessPKTPartyUnknown(p);
-                    System.Diagnostics.Debug.WriteLine($"Opcode: {Enum.GetName(typeof(OpCodes), opcode)} found with *");
+                    PartyTracker.Instance.ProcessPKTPartyStatusEffectResultNotify(p);
                 }
                 if (opcode == OpCodes.PKTPartyLeaveResult)
                 {
@@ -406,7 +405,10 @@ namespace InetOptimizer
                         PartyId = _localCharacterId
                     };
                     currentEncounter.Entities.TryAdd(env.PlayerId, temp);
+                    PCIdMapper.Instance.Clear();
                     if (_localCharacterId != 0)
+                        // add back mapping for own character
+                        PCIdMapper.Instance.AddCharacterIdAndEntityIdMapping(_localCharacterId, env.PlayerId);
                         PartyTracker.Instance.ProcessPKTInitEnv(env, _localCharacterId);
                     onNewZone?.Invoke();
                     Logger.AppendLog(1, env.PlayerId.ToString("X"));
@@ -508,7 +510,7 @@ namespace InetOptimizer
                     };
                     System.Diagnostics.Debug.WriteLine($"EntityId: {tempEntity.EntityId:X} Name: {tempEntity.Name} ClassName: {tempEntity.ClassName} Type: {tempEntity.Type}");
                     currentEncounter.Entities.AddOrUpdate(tempEntity);
-                    //PCIdMapper.Instance.AddCharacterIdAndEntityIdMapping(pc.CharacterId, pc.PlayerId);
+                    PCIdMapper.Instance.AddCharacterIdAndEntityIdMapping((ulong)pc.Unk56, pc.PlayerId);
                     PartyTracker.Instance.ProcessPKTInitPC(pc);
                     statusEffectTracker.InitPc(pc);
                     onNewZone?.Invoke();
@@ -902,14 +904,10 @@ namespace InetOptimizer
             Entity dstEntity;
             if (statusEffect.Type == StatusEffect.StatusEffectType.Party)
             {
-                try
-                {
-                    dstEntity = currentEncounter.Entities.GetOrAdd(PCIdMapper.Instance.GetEntityIdFormCharacterId(statusEffect.TargetId));
-                }
-                catch(KeyNotFoundException)
-                {
+                if (PCIdMapper.Instance.TryGetEntityIdFormCharacterId(statusEffect.TargetId, out var entId))
+                    dstEntity = currentEncounter.Entities.GetOrAdd(entId);
+                else
                     return;
-                }
             }
             else
                 dstEntity = currentEncounter.Entities.GetOrAdd(statusEffect.TargetId);

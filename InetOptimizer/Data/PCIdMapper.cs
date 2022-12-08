@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 
 namespace InetOptimizer
 {
@@ -8,8 +9,8 @@ namespace InetOptimizer
     {
         private static readonly PCIdMapper instance = new();
 
-        private ConcurrentDictionary<UInt64, UInt64> EntityIdToCharacterIdMap;
-        private ConcurrentDictionary<UInt64, UInt64> CharacterIdToEntityIdMap;
+        private readonly ConcurrentDictionary<UInt64, UInt64> EntityIdToCharacterIdMap;
+        private readonly ConcurrentDictionary<UInt64, UInt64> CharacterIdToEntityIdMap;
         private PCIdMapper(){
             EntityIdToCharacterIdMap = new();
             CharacterIdToEntityIdMap = new();
@@ -23,27 +24,39 @@ namespace InetOptimizer
             }
         }
 
-        public UInt64 GetEntityIdFormCharacterId(UInt64 characterId)
+        public bool TryGetEntityIdFormCharacterId(UInt64 characterId, out UInt64 entityId)
         {
-            if (CharacterIdToEntityIdMap.TryGetValue(characterId, out UInt64 entityId))
-            {
-                return entityId;
-            }
-            throw new KeyNotFoundException();
+            return CharacterIdToEntityIdMap.TryGetValue(characterId, out entityId);
         }
-        public UInt64 GetCharacterIdFormEntityId(UInt64 entityId)
+
+        public bool TryGetCharacterIdFromEntityId(UInt64 entityId, out UInt64 characterId)
         {
-            if (EntityIdToCharacterIdMap.TryGetValue(entityId, out UInt64 characterId))
-            {
-                return characterId;
-            }
-            throw new KeyNotFoundException();
+            return EntityIdToCharacterIdMap.TryGetValue(entityId, out characterId);
+        }
+
+        public bool ContainsEntityIdMapping(UInt64 entityId)
+        {
+            return EntityIdToCharacterIdMap.ContainsKey(entityId);
+        }
+
+        public bool ContainsCharacterIdMapping(UInt64 characterId)
+        {
+            return CharacterIdToEntityIdMap.ContainsKey(characterId);
         }
 
         public void AddCharacterIdAndEntityIdMapping(UInt64 characterId, UInt64 entityId)
         {
             EntityIdToCharacterIdMap.TryAdd(entityId, characterId);
             CharacterIdToEntityIdMap.TryAdd(characterId, entityId);
+        }
+
+        /**
+         * Clear all EntityId to CharacterId and CharacterId to EntityId mappings
+         **/
+        public void Clear()
+        {
+            EntityIdToCharacterIdMap.Clear();
+            CharacterIdToEntityIdMap.Clear();
         }
     }
 }
