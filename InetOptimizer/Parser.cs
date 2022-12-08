@@ -49,6 +49,7 @@ namespace InetOptimizer
             statusEffectTracker = new StatusEffectTracker(this);
             statusEffectTracker.OnStatusEffectEnded += Parser_onStatusEffectEnded;
             statusEffectTracker.OnStatusEffectStarted += StatusEffectTracker_OnStatusEffectStarted;
+            statusEffectTracker.OnShieldChanged += StatusEffectTradcker_OnShieldUpdate;
             InstallListener();
         }
 
@@ -317,11 +318,11 @@ namespace InetOptimizer
                     }
                 }
                 */
-                //A67B63A
-                if (Search(payload, new byte[] { 0x3C, 0xB6, 0x67 }) >= 0)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Opcode: {Enum.GetName(typeof(OpCodes), opcode)} found with *");
-                    //Logger.AppendLog(88484, ((int)opcode).ToString(), BitConverter.ToString(payload).Replace("-", ""));
+
+                if ((int)opcode == 0x1f8d) {
+                    var p = new PKTShieldUpdate(new BitReader(payload));
+                    statusEffectTracker.ShieldUpdate(p);
+                    // parse shield
                 }
                 if ((int)opcode == 0xd817)
                 {
@@ -332,7 +333,6 @@ namespace InetOptimizer
                 {
                     var ppl = new PKTPartyLeaveResult(new BitReader(payload));
                     PartyTracker.Instance.ProcessPKTPartyLeaveResult(ppl);
-                    System.Diagnostics.Debug.WriteLine($"Opcode: {Enum.GetName(typeof(OpCodes), opcode)} found with *");
                 }
                 if (opcode == OpCodes.PKTTriggerStartNotify)
                 {
@@ -929,6 +929,33 @@ namespace InetOptimizer
         {
             Logger.AppendLog(10, statusEffect.SourceId.ToString("X"), currentEncounter.Entities.GetOrAdd(statusEffect.SourceId).Name, statusEffect.StatusEffectId.ToString("X"), SkillBuff.GetSkillBuffName(statusEffect.StatusEffectId), statusEffect.TargetId.ToString("X"), currentEncounter.Entities.GetOrAdd(statusEffect.TargetId).Name, statusEffect.Value.ToString());
 
+        }
+
+        private void StatusEffectTradcker_OnShieldUpdate(StatusEffect statusEffect, long changedby) {
+            // not sure why this would ever happen but just in case shield inreases
+            if (changedby <= 0) return;
+            Entity dstEntity;
+            if (statusEffect.Type == StatusEffect.StatusEffectType.Party)
+            {
+                if (PCIdMapper.Instance.TryGetEntityIdFormCharacterId(statusEffect.TargetId, out var entId))
+                    dstEntity = currentEncounter.Entities.GetOrAdd(entId);
+                else
+                    return;
+            }
+            else
+                dstEntity = currentEncounter.Entities.GetOrAdd(statusEffect.TargetId);
+            var sourceEntity = currentEncounter.Entities.GetOrAdd(statusEffect.SourceId);
+            var log = new LogInfo
+            {
+                Time = DateTime.Now,
+                SourceEntity = sourceEntity,
+                DestinationEntity = dstEntity,
+                SkillEffectId = statusEffect.StatusEffectId,
+                SkillName = SkillBuff.GetSkillBuffName(statusEffect.StatusEffectId),
+                Damage = 0,
+                Shield = (ulong)changedby,
+            };
+            currentEncounter.Infos.Add(log);
         }
 
         private void Parser_onNewZone()

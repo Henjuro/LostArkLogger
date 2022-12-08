@@ -13,6 +13,7 @@ namespace InetOptimizer
         public event Action OnChange;
         public event Action<StatusEffect> OnStatusEffectStarted;
         public event Action<StatusEffect, TimeSpan> OnStatusEffectEnded;
+        public event Action<StatusEffect, long> OnShieldChanged;
         public StatusEffectTracker(Parser p)
         {
             PartyStatusEffectRegistry = new ConcurrentDictionary<UInt64, Tuple<ConcurrentDictionary<UInt64, StatusEffect>, ConcurrentDictionary<UInt32, int>>>();
@@ -63,6 +64,37 @@ namespace InetOptimizer
                 ProcessStatusEffectData(statusEffect, packet.PCStruct.CharacterId, statusEffect.SourceId, statusEffectList, StatusEffect.StatusEffectType.Party);
             }
             OnChange?.Invoke();
+        }
+
+        public void ShieldUpdate(PKTShieldUpdate su)
+        {
+            Tuple<ConcurrentDictionary<UInt64, StatusEffect>, ConcurrentDictionary<UInt32, int>> statusEffectList;
+            if (PartyStatusEffectRegistry.ContainsKey(su.CharacterId))
+                statusEffectList = GetStatusEffectList(su.CharacterId, StatusEffect.StatusEffectType.Party);
+            else
+                statusEffectList = GetStatusEffectList(su.TargetId, StatusEffect.StatusEffectType.Local);
+
+            if (statusEffectList.Item1.TryGetValue((ulong)su.EffectInstanceId, out var effect)) {
+                var se = parser.GetSourceEntity(effect.SourceId);
+                Entity te;
+                if (effect.Type == StatusEffect.StatusEffectType.Party && PCIdMapper.Instance.TryGetEntityIdFormCharacterId(effect.TargetId, out var entId))
+                    te = parser.GetSourceEntity(entId);
+                else
+                    te = parser.GetSourceEntity(effect.TargetId);
+                string sourceName = "Unknown";
+                string targetName = "Unknown";
+                if (se != null)
+                {
+                    sourceName = se.VisibleName;
+                }
+                if (te != null)
+                {
+                    targetName = te.VisibleName;
+                }
+                long change = effect.Value - su.ShieldAmount;
+                effect.Value = su.ShieldAmount;
+                OnShieldChanged?.Invoke(effect, change);
+            }
         }
 
         private void ProcessStatusEffectData(StatusEffectData effectData, UInt64 targetId, UInt64 sourceId, Tuple<ConcurrentDictionary<UInt64, StatusEffect>, ConcurrentDictionary<UInt32, int>> effectList, StatusEffect.StatusEffectType effectType)
