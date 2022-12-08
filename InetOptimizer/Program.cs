@@ -11,6 +11,16 @@ using System.Security.Principal;
 using System.Windows.Forms;
 namespace InetOptimizer
 {
+    public class MxFilter : TraceFilter
+    {
+        public override bool ShouldTrace(TraceEventCache cache, string source, TraceEventType eventType, int id, string formatOrMessage, object[] args, object data1, object[] data)
+        {
+            if (!String.IsNullOrEmpty(formatOrMessage) && formatOrMessage.StartsWith("Skill:")) {
+                return true;
+            }
+            return false;
+        }
+    }
     internal static class Program
     {
         //public static bool IsConsole = OpenStandardInput(1) != Stream.Null;
@@ -27,7 +37,9 @@ namespace InetOptimizer
         [STAThread]
         static void Main(string[] args)
         {
-            Trace.Listeners.Add(new TextWriterTraceListener("StatusEffectDebug.log", "FileLogListener"));
+            var listener = new TextWriterTraceListener("StatusEffectDebug.log", "FileLogListener");
+            listener.Filter = new MxFilter();
+            Trace.Listeners.Add(listener);
             System.Diagnostics.Debug.AutoFlush = true;
             Properties.Settings.Default.Providers.Clear();
             Bluegrams.Application.PortableSettingsProvider.SettingsFileName = AppDomain.CurrentDomain.FriendlyName + ".ini";

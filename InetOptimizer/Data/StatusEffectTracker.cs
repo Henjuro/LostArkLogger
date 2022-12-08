@@ -91,6 +91,7 @@ namespace InetOptimizer
                 {
                     targetName = te.VisibleName;
                 }
+                System.Diagnostics.Trace.WriteLine($"Skill: {SkillBuff.GetSkillBuffName(effect.StatusEffectId)}({effect.StatusEffectId}) on {targetName} from {sourceName} updated with {su.ShieldAmount}", "ShieldUpdate");
                 long change = effect.Value - su.ShieldAmount;
                 effect.Value = su.ShieldAmount;
                 OnShieldChanged?.Invoke(effect, change);
@@ -153,7 +154,7 @@ namespace InetOptimizer
                 if (effect.PlayerIdOnRefresh != 0x0)
                 {
                     applierId = effect.PlayerIdOnRefresh;
-                    System.Diagnostics.Debug.WriteLine($"Replacing sourceId: {statusEffect.SourceId:X} with PlayerIdOnRefresh: {applierId:X} StatusEffectName: {SkillBuff.GetSkillBuffName(statusEffect.StatusEffectId)}");
+                    System.Diagnostics.Trace.WriteLine($"Replacing sourceId: {statusEffect.SourceId:X} with PlayerIdOnRefresh: {applierId:X} StatusEffectName: {SkillBuff.GetSkillBuffName(statusEffect.StatusEffectId)}", "PartyAdd");
                 }
                 var statusEffectList = GetStatusEffectList(effect.CharacterId, StatusEffect.StatusEffectType.Party);
                 ProcessStatusEffectData(statusEffect, effect.CharacterId, applierId, statusEffectList, StatusEffect.StatusEffectType.Party);
@@ -164,12 +165,12 @@ namespace InetOptimizer
         public void PartyRemove(PKTPartyStatusEffectRemoveNotify effect)
         {
             var statusEffectList = GetStatusEffectList(effect.CharacterId, StatusEffect.StatusEffectType.Party);
-            System.Diagnostics.Debug.WriteLine($"Removing Party StatusEffect from target PartyId: {effect.CharacterId:X}");
+            System.Diagnostics.Trace.WriteLine($"Removing Party StatusEffect from target PartyId: {effect.CharacterId:X}", "PartyRemove");
             foreach (var effectInstanceId in effect.statusEffectIds.Ids)
             {
                 if (RemoveStatusEffect(statusEffectList, effectInstanceId, out var oldStatusEffect))
                 {
-                    System.Diagnostics.Debug.WriteLine($"Removed {oldStatusEffect.InstanceId:X} from {effect.CharacterId:X} StatusEffectName: {SkillBuff.GetSkillBuffName(oldStatusEffect.StatusEffectId)}");
+                    System.Diagnostics.Trace.WriteLine($"Removed {oldStatusEffect.InstanceId:X} from {effect.CharacterId:X} StatusEffectName: {SkillBuff.GetSkillBuffName(oldStatusEffect.StatusEffectId)}", "PartyRemove");
                     var duration = DateTime.UtcNow - oldStatusEffect.Started;
                     OnStatusEffectEnded?.Invoke(oldStatusEffect, duration);
                 }
@@ -180,11 +181,11 @@ namespace InetOptimizer
         public void Remove(PKTStatusEffectRemoveNotify effect)
         {
             var statusEffectList = GetStatusEffectList(effect.ObjectId, StatusEffect.StatusEffectType.Local);
-            System.Diagnostics.Debug.WriteLine($"Removing StatusEffect from target EntityId: {effect.ObjectId:X}");
+            System.Diagnostics.Trace.WriteLine($"Removing StatusEffect from target EntityId: {effect.ObjectId:X}", "Remove");
             foreach (var effectInstanceId in effect.statusEffectIds.Ids)            {
                 if (RemoveStatusEffect(statusEffectList, effectInstanceId, out var oldStatusEffect))
                 {
-                    System.Diagnostics.Debug.WriteLine($"Removed {oldStatusEffect.InstanceId:X} from {effect.ObjectId:X} StatusEffectName: {SkillBuff.GetSkillBuffName(oldStatusEffect.StatusEffectId)}");
+                    System.Diagnostics.Trace.WriteLine($"Removed {oldStatusEffect.InstanceId:X} from {effect.ObjectId:X} StatusEffectName: {SkillBuff.GetSkillBuffName(oldStatusEffect.StatusEffectId)}", "Remove");
                     var duration = DateTime.UtcNow - oldStatusEffect.Started;
                     OnStatusEffectEnded?.Invoke(oldStatusEffect, duration);
                 }

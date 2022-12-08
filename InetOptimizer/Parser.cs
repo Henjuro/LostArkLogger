@@ -113,7 +113,6 @@ namespace InetOptimizer
                         pcap = null;
                     }
                 }
-
                 if (use_npcap == false)
                 {
                     // Always fall back to rawsockets
@@ -407,12 +406,14 @@ namespace InetOptimizer
                     currentEncounter.Entities.TryAdd(env.PlayerId, temp);
                     PCIdMapper.Instance.Clear();
                     if (_localCharacterId != 0)
+                    {
                         // add back mapping for own character
                         PCIdMapper.Instance.AddCharacterIdAndEntityIdMapping(_localCharacterId, env.PlayerId);
                         PartyTracker.Instance.ProcessPKTInitEnv(env, _localCharacterId);
+                    }
                     onNewZone?.Invoke();
                     Logger.AppendLog(1, env.PlayerId.ToString("X"));
-                    System.Diagnostics.Debug.WriteLine($"Own EntityId: {env.PlayerId:X}");
+                    System.Diagnostics.Trace.WriteLine($"Own EntityId: {env.PlayerId:X}", "PKTInitEnv");
                 }
                 else if (opcode == OpCodes.PKTRaidBossKillNotify //Packet sent for boss kill, wipe or start
                          || opcode == OpCodes.PKTTriggerBossBattleStatus
@@ -508,7 +509,7 @@ namespace InetOptimizer
                         Type = Entity.EntityType.Player,
                         GearLevel = _localGearLevel
                     };
-                    System.Diagnostics.Debug.WriteLine($"EntityId: {tempEntity.EntityId:X} Name: {tempEntity.Name} ClassName: {tempEntity.ClassName} Type: {tempEntity.Type}");
+                    System.Diagnostics.Trace.WriteLine($"EntityId: {tempEntity.EntityId:X} Name: {tempEntity.Name} ClassName: {tempEntity.ClassName} Type: {tempEntity.Type}", "PKTInitPC");
                     currentEncounter.Entities.AddOrUpdate(tempEntity);
                     PCIdMapper.Instance.AddCharacterIdAndEntityIdMapping((ulong)pc.Unk56, pc.PlayerId);
                     PartyTracker.Instance.ProcessPKTInitPC(pc);
@@ -536,7 +537,7 @@ namespace InetOptimizer
                         GearLevel = pc.GearLevel,
                         dead = false
                     };
-                    System.Diagnostics.Debug.WriteLine($"EntityId: {temp.EntityId:X} CharacterId: {temp.PartyId:X} Name: {temp.Name} ClassName: {temp.ClassName} Type: {temp.Type}");
+                    System.Diagnostics.Trace.WriteLine($"EntityId: {temp.EntityId:X} CharacterId: {temp.PartyId:X} Name: {temp.Name} ClassName: {temp.ClassName} Type: {temp.Type}", "PKTNewPC");
                     if (currentEncounter.Entities.ContainsKey(temp.EntityId))
                     {
                         temp.dead = currentEncounter.Entities.GetOrAdd(temp.EntityId).dead;
@@ -570,7 +571,7 @@ namespace InetOptimizer
                         Logger.AppendLog(4, npc.ObjectId.ToString("X"), npc.TypeId.ToString(), Npc.GetNpcName(npc.TypeId), npc.statPair.Value[hp_pos].ToString(), npc.statPair.Value[hp_max_pos].ToString());
                     statusEffectTracker.NewNpc(npcPacket);
 
-                    System.Diagnostics.Debug.WriteLine($"EntityId: {npc.ObjectId:X} Name: {Npc.GetNpcName(npc.TypeId)} Type: {Entity.EntityType.Npc}");
+                    System.Diagnostics.Trace.WriteLine($"EntityId: {npc.ObjectId:X} Name: {Npc.GetNpcName(npc.TypeId)} Type: {Entity.EntityType.Npc}", "PKTNewNpc");
 
                 }
                 else if (opcode == OpCodes.PKTRemoveObject)
@@ -738,7 +739,7 @@ namespace InetOptimizer
                 {
                     var partyInfo = new PKTPartyInfo(new BitReader(payload));
                     PartyTracker.Instance.ProcessPKTPartyInfo(partyInfo);
-                    System.Diagnostics.Debug.WriteLine("Printing PartyInfo");
+                    System.Diagnostics.Trace.WriteLine("Printing PartyInfo", "PKTPartyInfo");
                     MemberInfo[] members = partyInfo.GetType().GetMembers(BindingFlags.Public | BindingFlags.Instance);
                     foreach (MemberInfo memberInfo in members)
                     {
@@ -752,23 +753,23 @@ namespace InetOptimizer
 
                                 if (fi.FieldType.IsValueType)
                                 {
-                                    System.Diagnostics.Debug.WriteLine("    {0}: {1:X}", memberInfo.Name, value);
+                                    System.Diagnostics.Trace.WriteLine($"    {memberInfo.Name}: {value:X}", "PKTPartyInfo");
                                 }
                                 else if (fi.FieldType == typeof(string))
                                 {
-                                    System.Diagnostics.Debug.WriteLine("    {0}: {1}", memberInfo.Name, value);
+                                    System.Diagnostics.Trace.WriteLine($"    {memberInfo.Name}: {value}", "PKTPartyInfo");
                                 }
                                 else
                                 {
                                     var isEnumerable = typeof(IEnumerable).IsAssignableFrom(fi.FieldType);
-                                    System.Diagnostics.Debug.WriteLine("    {0}: {1}", memberInfo.Name, isEnumerable ? "..." : "{ }");
+                                    System.Diagnostics.Trace.WriteLine($"    {memberInfo.Name}: {(isEnumerable ? "..." : "{}")}", "PKTPartyInfo");
                                 }
                             }
                     }
 
                     foreach (var memberData in partyInfo.MemberDatas.Data)
                     {
-                        System.Diagnostics.Debug.WriteLine("    MemberData Start");
+                        System.Diagnostics.Trace.WriteLine("    MemberData Start", "PKTPartyInfo");
                         members = memberData.GetType().GetMembers(BindingFlags.Public | BindingFlags.Instance);
                         foreach (MemberInfo memberInfo in members)
                         {
@@ -780,30 +781,21 @@ namespace InetOptimizer
 
                                 if (fi.FieldType.IsValueType)
                                 {
-                                    System.Diagnostics.Debug.WriteLine("        {0}: {1:X}", memberInfo.Name, value);
+                                    System.Diagnostics.Trace.WriteLine($"        {memberInfo.Name}: {value:X}", "PKTPartyInfo");
                                 }
                                 else if (fi.FieldType == typeof(string))
                                 {
-                                    System.Diagnostics.Debug.WriteLine("        {0}: {1}", memberInfo.Name, value);
+                                    System.Diagnostics.Trace.WriteLine($"        {memberInfo.Name}: {value}", "PKTPartyInfo");
                                 }
                                 else
                                 {
                                     var isEnumerable = typeof(IEnumerable).IsAssignableFrom(fi.FieldType);
-                                    System.Diagnostics.Debug.WriteLine("        {0}: {1}", memberInfo.Name, isEnumerable ? "..." : "{ }");
+                                    System.Diagnostics.Trace.WriteLine($"        {memberInfo.Name}: {(isEnumerable ? "..." : "{ }")}", "PKTPartyInfo");
                                 }
                             }
                         }
-                        System.Diagnostics.Debug.WriteLine("    MemberData End");
+                        System.Diagnostics.Trace.WriteLine("    MemberData End", "PKTPartyInfo");
                     }
-                }
-                else
-                {
-                    
-                    if (Search(payload, new byte[] { 0x23, 0x5c, 0x17 }) >= 0)
-                    {
-                        Logger.AppendLog(88484, ((int)opcode).ToString(), BitConverter.ToString(payload).Replace("-", ""));
-                    }
-
                 }
                 if (packets.Length < packetSize) throw new Exception("bad packet maybe");
                 packets = packets.Skip(packetSize).ToArray();
