@@ -37,6 +37,15 @@ namespace InetOptimizer
         [STAThread]
         static void Main(string[] args)
         {
+
+            var flag = 0xF6;
+            var f1 = (flag >> 1);
+            var d = f1 & 7;
+
+            var bytes = new byte[] { 0x0C };
+            if (bytes.Length < 8) bytes = bytes.Concat(new Byte[] { 0, 0, 0, 0, 0, 0, 0, 0 }).ToArray();
+            var result = (BitConverter.ToInt64(bytes, 0) << 4) | (uint)(flag >> 4);
+            var res = (flag & 1) == 0 ? result : -result;
             var listener = new TextWriterTraceListener("StatusEffectDebug.log", "FileLogListener");
             listener.Filter = new MxFilter();
             Trace.Listeners.Add(listener);
